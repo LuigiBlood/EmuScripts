@@ -1,0 +1,2 @@
+# EmuScripts
+Scripts for emulators

@@ -23,10 +23,12 @@ events.onexec(0x800BF654, function()
 events.onexec(0x80284130, function(addr)
 {
 	//Send Bytes
-	GBCam_Send(gpr.a3);
+	GBT_Send(gpr.a3);
 	return;
 	
 	//Console Output
+	if (prevcmd == GBP_CMD_COPY && lengthdata > 0)
+		return;
 	var output = "Send: ";
 	for (var i = 0; i < 0x20; i++)
 	{
@@ -79,10 +81,12 @@ var sizep = 0;
 events.onexec(0x80284658, function(addr)
 {
 	//Put Response to Buffer
-	GBCam_Recv(RECV_ADDR);
+	GBT_Recv(RECV_ADDR);
 	return;
 	
 	//Console Output
+	if (prevcmd == GBP_CMD_COPY && lengthdata > 0)
+		return;
 	var output = "Recv: ";
 	for (var i = 0; i < 0x20; i++)
 	{
@@ -96,16 +100,35 @@ var check = 0;
 var lengthdata = -1;
 var lengthdatacheck = 0;
 var byterecv = [];
+var bytesizerecv = [];
+var sizedata = 0x20;
+var transfermode = 0;
 
 var prevcmd = 0;
 var cmd = 0;
 var statusbyte = 0;
 var intstatus = 0;
 
-//Command Found for Transfer Pak Link (always 3 bytes?)
-//C0 0A 28 - Transfer 0x20 bytes to Link Cable (Short Link)
-//C0 1A 28 - Transfer 0x20 * 0x1A bytes to Link Cable (Long Link, used for Copy)
-//40 0A 28 - ?
+var fileBuffer = new Buffer(0x100000);
+var fileBufferOffset = 0;
+var fileBufferOffset2 = 0;
+var file;
+
+//Transfer Pak Link Commands (always 3 bytes)
+
+//Wake Up / Init = Send 0x20 bytes of 0x83
+
+//Transfer Command Packet = Send XX YY ZZ
+//XX = 0xC0 (First Transfer after Wake Up)
+//     0x40 (All subsequent transfers)
+//YY = Data Packet Size in bytes
+//ZZ = 0x28 (First Transfer after Wake Up)
+//     0x12 (All subsequent transfers)
+
+//Then Send a Data Packet
+//All packets sent have their response (always begins with 0x02, else retry), including the Transfer Pak Command Packet.
+//Which means the packets response is shifted by one packet so you have to receive one another for the actual response.
+
 
 //Commands for Pocket Printer
 const GBP_CMD_INIT = 0x1;
@@ -122,135 +145,190 @@ const GBPC_CMD_POSTPRINT = 0x6;
 const GBPC_CMD_STOP = 0x8;
 const GBPC_CMD_NOP = 0xF;
 
-function GBCam_Send(addr)
+function GBT_Send(addr)
 {
-	//Do not respond to 83 dummy/init? command
-	if (lengthdata < 0)
+	//Deal with Transfer Pak Link Commands
+
+	//Wake Up
+	for (var i = 0; i < 0x20; i++)
 	{
-		for (var i = 0; i < 0x20; i++)
+		if (mem.u8[addr + i] != 0x83)
 		{
-			if (mem.u8[addr + i] != 0x83)
+			break;
+		}
+		else if (i >= 0x1F)
+			return;
+	}
+	
+	//Deal with Transfer Pak Link Command
+	if (mem.u8[addr + 0] == 0xC0 || mem.u8[addr + 0] == 0x40)
+	{
+		if (mem.u8[addr + 2] == 0x28 || mem.u8[addr + 2] == 0x12)
+		{
+			//Get Size Data
+			sizedata = mem.u8[addr + 1];
+			
+			if (transfermode == 0)
 			{
-				break;
+				//Add Response
+				for (var i = 0; i < sizedata; i++)
+				{
+					byterecv.push(0);
+				}
+				bytesizerecv.push(sizedata);
 			}
-			else if (i >= 0x1F)
-				return;
+			
+			transfermode = 1;
+			return;
 		}
 	}
 	
 	//Every byte sent has a response byte
-	for (var i = 0; i < 0x20; i++)
+	for (var i = 0; i < sizedata; i++)
 	{
 		var temp = 0;
-		if (i == 0)
+		if (transfermode == 1)
 		{
-			//This is probably just for the other kind of command which seems to be always 3 bytes.
-			//Always leaving it in there no matter the command is fine.
-			temp = 2;
-		}
-		
-		if (lengthdata < 0)
-		{
-			//Deal with Pocket Printer Commands
-			if (i == 0)
+			//Transfer Image Data to Buffer
+			if ((cmd == GBP_CMD_COPY) && (lengthdata > 0))
 			{
-				//Magic
-				check = mem.u8[addr + i] << 8;
+				fileBuffer[fileBufferOffset] = mem.u8[addr + i];
+				fileBufferOffset++;
 			}
-			else if (i == 1)
+			if (lengthdata <= 0)
 			{
-				check += mem.u8[addr + i];
-			}
-			else if (i == 2)
-			{
-				//CMD
-				if (check == 0x8833)
+				//Deal with Pocket Printer Commands
+				if (i == 0)
 				{
-					prevcmd = cmd;
-					cmd = mem.u8[addr + i];
-					
-					switch (cmd)
+					//Magic
+					check = mem.u8[addr + i] << 8;
+				}
+				else if (i == 1)
+				{
+					check += mem.u8[addr + i];
+				}
+				else if (i == 2)
+				{
+					//CMD
+					if (check == 0x8833)
 					{
-						case GBP_CMD_INIT:
-							statusbyte = 0;
-							break;
-						case GBP_CMD_PRINT:
-							if (PRINTER_TYPE == 0)
-								statusbyte = 0x04;
-							else
+						prevcmd = cmd;
+						cmd = mem.u8[addr + i];
+						
+						switch (cmd)
+						{
+							case GBP_CMD_INIT:
 								statusbyte = 0;
-							break;
-						case GBP_CMD_COPY:
-							statusbyte = 0;
-							break;
-						case GBPC_CMD_POSTPRINT:
-							statusbyte = 0x0C;
-							break;
-						case GBP_CMD_STOP:
-							statusbyte = 0;
-							break;
-						case GBP_CMD_NOP:
-							statusbyte = 0;
-							if (prevcmd == GBP_CMD_COPY)
+								//fileBuffer = [];
+								fileBufferOffset = 0;
+								fileBufferOffset2 = 0;
+								break;
+							case GBP_CMD_PRINT:
+								if (PRINTER_TYPE == 0)
+								{
+									statusbyte = 0x04;
+									GBPrinter_OutputImage(160);
+								}
+								else
+								{
+									statusbyte = 0;
+								}
+								break;
+							case GBP_CMD_COPY:
+								statusbyte = 0;
+								break;
+							case GBPC_CMD_POSTPRINT:
 								statusbyte = 0x0C;
-							break;
-						default:
-							console.log(cmd);
-							break;
+								if (prevcmd != GBPC_CMD_POSTPRINT)
+								{
+									GBPrinter_OutputImage(lengthdatacheck / 2);
+								}
+								break;
+							case GBP_CMD_STOP:
+								statusbyte = 0;
+								break;
+							case GBP_CMD_NOP:
+								statusbyte = 0;
+								if (prevcmd == GBP_CMD_COPY)
+									statusbyte = 0x0C;
+								break;
+							default:
+								console.log(cmd);
+								break;
+						}
 					}
 				}
-			}
-			else if (i == 4)
-			{
-				//Get Data Packet Length
-				lengthdatacheck = mem.u8[addr + i];
-			}
-			else if (i == 5)
-			{
-				lengthdatacheck += (mem.u8[addr + i] << 8);
-				if (check == 0x8833 && lengthdata < 0)
+				else if (i == 4)
 				{
-					//Data Packet Length ignores the first 6 bytes in every other 0x20 byte packet
-					//So we add +6 for every single one for the sake of the script
-					lengthdatacheck += (Math.floor(lengthdatacheck / 0x1A) * 6);
-					
-					//This is used for the proper response
-					lengthdata = lengthdatacheck;
-					lengthdata++;
+					//Get Data Packet Length
+					lengthdatacheck = mem.u8[addr + i];
 				}
-				else if (lengthdata < 0)
+				else if (i == 5)
 				{
-					//Reset Data Length for response
-					lengthdata = 1;
+					lengthdatacheck += (mem.u8[addr + i] << 8);
+					if (check == 0x8833 && lengthdata <= 0)
+					{
+						//Deal with Data
+						lengthdata = lengthdatacheck + 1;
+					}
+					else if (lengthdata <= 0)
+					{
+						//Reset Data Length for response
+						lengthdata = 1;
+					}
 				}
-			}
-			else if (lengthdata == -2 && check == 0x8833)
-			{
-				//Keep Alive / Constant
-				if (PRINTER_TYPE == 0)
-					temp = 0x81;	//Pocket Printer
-				else
-					temp = 0x82;	//Pocket Printer Color
-			}
-			else if (lengthdata == -3 && check == 0x8833)
-			{
-				//Printer Status
-				temp = statusbyte;
+				else if (lengthdata == -2 && check == 0x8833)
+				{
+					//Keep Alive / Constant
+					if (PRINTER_TYPE == 0)
+						temp = 0x81;	//Pocket Printer
+					else
+						temp = 0x82;	//Pocket Printer Color
+				}
+				else if (lengthdata == -3 && check == 0x8833)
+				{
+					//Printer Status
+					temp = statusbyte;
+				}	
 			}
 			
+			lengthdata--;
 		}
-		
-		lengthdata--;
 		byterecv.push(temp);
 	}
+	bytesizerecv.push(sizedata);
 }
 
-function GBCam_Recv(addr)
+function GBT_Recv(addr)
 {
 	//Put all response bytes in the buffer
 	//The Transfer Pak Link Cable management probably contains a buffer big enough for most uses.
+	var sizecur = bytesizerecv.shift();
+	
 	for (var i = 0; i < 0x20; i++)
 	{
-		mem.u8[addr + i] = byterecv.shift();
+		if (i < sizecur)
+			mem.u8[addr + i] = byterecv.shift();
+		else
+			mem.u8[addr + i] = 0;
+		
+		if (i == 0)
+			mem.u8[addr + i] = 2;
 	}
+	
+	if (byterecv.length <= 0)
+		transfermode = 0;
+}
+
+function GBPrinter_OutputImage(_width)
+{
+	//Output RAW Image
+	var filename = "test_";
+	var num = 0;
+	for (; fs.stat(filename + num + ".bin"); num++);
+	
+	file = fs.open(filename + num + ".bin", 'wb+');
+	fs.write(file, fileBuffer, 0, fileBufferOffset);
+	fs.close(file);
+	console.log("Written \"" + filename + num + ".bin" + "\" - w:" + _width);
 }

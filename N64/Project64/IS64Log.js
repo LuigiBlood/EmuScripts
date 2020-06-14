@@ -1,4 +1,4 @@
-//IS-Viewer 64 Message Register Emulation script by LuigiBlood
+//IS-Viewer 64 Message Register Emulation script by LuigiBlood & Kenix
 
 console.log("IS64-Viewer");
 

@@ -1,4 +1,4 @@
-//IS-Viewer 64 Message Register Emulation script by LuigiBlood
+//IS-Viewer 64 Message Register Emulation script by LuigiBlood & Kenix
 //This version uses this Node Package: https://github.com/MNGoldenEagle/DebugConsole
 
 console.log("IS-Viewer (Debug Server)");

@@ -17,10 +17,9 @@ const _IS_MSGBUF_MSGLEN = _IS_MSGBUF_HEADLEN-_IS_MSGBUF_HEADLEN;
 const ADDR_IS64_REG = new AddressRange(_IS_MSGBUFFER_AD, _IS_MSGBUF_MSGTOP-1);
 const ADDR_IS64_MSG = new AddressRange(_IS_MSGBUF_MSGTOP, _IS_MSGBUFFER_AD_END-1);
 
-dev = new IS64Device(411, _IS_MSGBUF_CHKAD, _IS_MSGBUF_GETPT, _IS_MSGBUF_PUTPT,
-					_IS_MSGBUF_MSGTOP, ADDR_IS64_REG, ADDR_IS64_MSG);
+var dev = new IS64Device(411, _IS_MSGBUF_CHKAD, _IS_MSGBUF_GETPT, _IS_MSGBUF_PUTPT, ADDR_IS64_REG, ADDR_IS64_MSG);
 
-function IS64Device (port, chkAddr, getAddr, putAddr, msgBufAddr, registerAddressRange, msgBufAddressRange) {
+function IS64Device(port, chkAddr, getAddr, putAddr, registerAddressRange, msgBufAddressRange) {
 	this.getStoreOp = function() {
 		// hacky way to get value that SW will write
 		var pcOpcode = mem.u32[gpr.pc];
@@ -52,9 +51,9 @@ function IS64Device (port, chkAddr, getAddr, putAddr, msgBufAddr, registerAddres
 					this.msgBuf.slice(start, this.msgBuf.length).concat(this.msgBuf.slice(0, end));
 				
 		var utf8String = Encoding.convert(slice, {
-		  to: 'UTF8',
-		  from: 'EUCJP',
-		  type: 'string'
+			to: 'UTF8',
+			from: 'EUCJP',
+			type: 'string'
 		});
 		
 		if(this.isServerEnabled()) {
@@ -66,97 +65,125 @@ function IS64Device (port, chkAddr, getAddr, putAddr, msgBufAddr, registerAddres
 		}
 	}
 	
-	this.initNetwork = function() {
-		// thisx needed to propagate `this` reference down into event callbacks
-		thisx = this;
-		thisx.debugServer = new Server({port:this.port});
-		thisx.socket = null;
-		thisx.debugServer.on('connection', function(newSocket) {
-			if(thisx.socket == null) {
-				thisx.socket = newSocket;
-				//thisx.socket.setEncoding('utf8');
-				thisx.socket.write("Welcome to IS64Viewer\n",  function(data) {});
-				
-				thisx.socket.on('data', function(data){
-					
-				});
-				
-				thisx.socket.on('close', function() {
-					thisx.socket = null;
-				});
-			} else {
-				newSocket.write('Server only allows one connection at a time.',  function(data) {});
-				newSocket.close();
-			}
-		});
+	this.onRecvData = function(data) {
+
 	}
+	
+	this.onCloseConnection = function() {
+		this.socket = null;
+	};
+	
+	this.onOpenConnection = function(newSocket) {
+		if(this.socket == null) {
+			this.socket = newSocket;
+			//this.socket.setEncoding('utf8');
+			this.socket.write("Welcome to IS64 Viewer\n", function(data) {});
+			
+			// Bind data receive listener
+			var fxn = this.onRecvData;
+			fxn = fxn.bind(this);
+			this.socket.on('data', fxn);
+			
+			// Bind connection close listener
+			var fxn = this.onCloseConnection;
+			fxn = fxn.bind(this);
+			this.socket.on('close', fxn);
+		} else {
+			newSocket.write('Server only allows one connection at a time.',  function(data) {});
+			newSocket.close();
+		}
+	};
 	
 	this.isServerEnabled = function () {
 		return typeof this.port == 'number';
 	}
 	
-	this.initDeviceHooks = function() {
-		// thisx needed to propagate `this` reference down into event callbacks
-		const thisx = this;
+	this.onRegisterRead = function(addr) {
+		this.returnReg = this.getStoreOp();
+		this.returnData = 0;
+		if (addr == this.chkAddr) {
+			this.returnData = this.chkReg;
+		} else if (addr == this.getAddr) {
+			this.returnData = this.getReg;
+		} else if (addr == this.putAddr) {
+			this.returnData = this.putReg;
+		}
+		var fxn = this.readCartReg;
+		fxn = fxn.bind(this);
+		this.callback = events.onexec((gpr.pc + 4), fxn);
+	};
+	
+	this.onRegisterWrite = function(addr) {
+		this.returnReg = this.getStoreOp();
+		if (addr == this.chkAddr) {
+			this.chkReg = this.getStoreOpValue();
+		} else if (addr == this.getAddr) {
+			this.getReg = this.getStoreOpValue();
+		} else if (addr == this.putAddr) {
+			//Handle this output
+			this.outputString(this.putReg, this.getStoreOpValue());
+			this.putReg = this.getStoreOpValue();
+		}
+	};
+	
+	this.onMemoryRead = function(addr) {
+		// Game will use osPiRead at all times so it's 32-bit aligned
 		
+		this.returnReg = this.getStoreOp();
+		var offset = addr - this.msgBufAddressRange.start;
+		this.returnData = ((this.msgBuf[offset + 0] & 0xFF) << 24);
+		this.returnData |= ((this.msgBuf[offset + 1] & 0xFF) << 16);
+		this.returnData |= ((this.msgBuf[offset + 2] & 0xFF) << 8);
+		this.returnData |= ((this.msgBuf[offset + 3] & 0xFF) << 0);
+		
+		var fxn = this.readCartReg;
+		fxn = fxn.bind(this);
+		this.callback = events.onexec((gpr.pc + 4), fxn);
+	};
+	
+	this.onMemoryWrite = function(addr) {
+		// Game will use osPiRead at all times so it's 32-bit aligned
+		
+		this.returnReg = this.getStoreOp();
+		var offset = addr - this.msgBufAddressRange.start;
+		var datamsg = this.getStoreOpValue();
+		this.msgBuf[offset + 0] = ((datamsg >> 24) & 0xFF);
+		this.msgBuf[offset + 1] = ((datamsg >> 16) & 0xFF);
+		this.msgBuf[offset + 2] = ((datamsg >> 8) & 0xFF);
+		this.msgBuf[offset + 3] = ((datamsg >> 0) & 0xFF);
+	};
+	
+	this.initNetwork = function() {
+		// Start Server
+		this.debugServer = new Server({port:this.port});
+		this.socket = null;
+		
+		// Bind Connection Listener
+		var fxn = this.onOpenConnection;
+		fxn = fxn.bind(this);
+		this.debugServer.on('connection', fxn);
+	}
+	
+	this.initDeviceHooks = function() {
 		// Register Read Event
-		events.onread(thisx.registerAddressRange, function(addr) {
-			thisx.returnReg = thisx.getStoreOp();
-			thisx.returnData = 0;
-			if (addr == thisx.chkAddr) {
-				thisx.returnData = thisx.chkReg;
-			} else if (addr == thisx.getAddr) {
-				thisx.returnData = thisx.getReg;
-			} else if (addr == thisx.putAddr) {
-				thisx.returnData = thisx.putReg;
-			}
-			var fxn = thisx.readCartReg;
-			fxn = fxn.bind(thisx);
-			thisx.callback = events.onexec((gpr.pc + 4), fxn);
-		});
+		var fxn = this.onRegisterRead;
+		fxn = fxn.bind(this);
+		events.onread(this.registerAddressRange, fxn);
 		
 		// Register Write Event
-		events.onwrite(thisx.registerAddressRange, function(addr) {
-			thisx.returnReg = thisx.getStoreOp();
-			if (addr == thisx.chkAddr) {
-				thisx.chkReg = thisx.getStoreOpValue();
-			} else if (addr == thisx.getAddr) {
-				thisx.getReg = thisx.getStoreOpValue();
-			} else if (addr == thisx.putAddr) {
-				//Handle this output
-				thisx.outputString(thisx.putReg, thisx.getStoreOpValue());
-				thisx.putReg = thisx.getStoreOpValue();
-			}
-		});
+		var fxn = this.onRegisterWrite;
+		fxn = fxn.bind(this);
+		events.onwrite(this.registerAddressRange, fxn);
 		
 		// Memory Read Event
-		events.onread(thisx.msgBufAddressRange, function(addr) {
-			// Game will use osPiRead at all times so it's 32-bit aligned
-			
-			thisx.returnReg = thisx.getStoreOp();
-			var offset = addr - thisx.msgBufAddressRange.start;
-			thisx.returnData = ((thisx.msgBuf[offset + 0] & 0xFF) << 24);
-			thisx.returnData |= ((thisx.msgBuf[offset + 1] & 0xFF) << 16);
-			thisx.returnData |= ((thisx.msgBuf[offset + 2] & 0xFF) << 8);
-			thisx.returnData |= ((thisx.msgBuf[offset + 3] & 0xFF) << 0);
-			
-			var fxn = thisx.readCartReg;
-			fxn = fxn.bind(thisx);
-			thisx.callback = events.onexec((gpr.pc + 4), fxn);
-		});
+		var fxn = this.onMemoryRead;
+		fxn = fxn.bind(this);
+		events.onread(this.msgBufAddressRange, fxn);
 		
 		// Memory Write Event
-		events.onwrite(thisx.msgBufAddressRange, function(addr) {
-			// Game will use osPiRead at all times so it's 32-bit aligned
-			
-			thisx.returnReg = thisx.getStoreOp();
-			var offset = addr - thisx.msgBufAddressRange.start;
-			var datamsg = thisx.getStoreOpValue();
-			thisx.msgBuf[offset + 0] = ((datamsg >> 24) & 0xFF);
-			thisx.msgBuf[offset + 1] = ((datamsg >> 16) & 0xFF);
-			thisx.msgBuf[offset + 2] = ((datamsg >> 8) & 0xFF);
-			thisx.msgBuf[offset + 3] = ((datamsg >> 0) & 0xFF);
-		});
+		var fxn = this.onMemoryWrite;
+		fxn = fxn.bind(this);
+		events.onwrite(this.msgBufAddressRange, fxn);
 	}
 	
 	// Magic number used to verify communication
@@ -166,7 +193,6 @@ function IS64Device (port, chkAddr, getAddr, putAddr, msgBufAddr, registerAddres
 	this.chkAddr = chkAddr;
 	this.getAddr = getAddr;
 	this.putAddr = putAddr;
-	this.msgBufAddr = msgBufAddr;
 	
 	// Register Address Range
 	this.registerAddressRange = registerAddressRange;
@@ -180,7 +206,7 @@ function IS64Device (port, chkAddr, getAddr, putAddr, msgBufAddr, registerAddres
 	this.putReg = 0;
 	
 	// Initialize Device memory
-	this.msgBuf = new Array(msgBufAddressRange.end - msgBufAddressRange.start);
+	this.msgBuf = new Array(this.msgBufAddressRange.end - this.msgBufAddressRange.start);
 	
 	// Initialize variables to communicate with PJ64
 	this.returnData = 0;
@@ -195,15 +221,13 @@ function IS64Device (port, chkAddr, getAddr, putAddr, msgBufAddr, registerAddres
 	// Initialize device access hooks
 	this.initDeviceHooks();
 	// Initialize network component
-	if(this.isServerEnabled()) {
+	if (this.isServerEnabled()) {
 		this.initNetwork();
 	}
 	
-	// Print used addresses
 	console.log("chkAddr: " + this.chkAddr.hex());
 	console.log("getAddr: " + this.getAddr.hex());
 	console.log("putAddr: " + this.putAddr.hex());
-	console.log("msgBufAddr: " + this.msgBufAddr.hex());
 	console.log("registerAddressRange: " + this.registerAddressRange.start.hex() + " - " + this.registerAddressRange.end.hex());
 	console.log("msgBufAddressRange: " + this.msgBufAddressRange.start.hex() + " - " + this.msgBufAddressRange.end.hex());
 }

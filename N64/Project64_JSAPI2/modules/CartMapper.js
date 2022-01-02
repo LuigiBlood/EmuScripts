@@ -1,6 +1,6 @@
 //CartMapper Module
 
-const VERSION = 1.0;
+const VERSION = 1.1;
 var INIT = false;
 var VERBOSE = 0;
 const MAPPER = new Array();
@@ -13,7 +13,7 @@ function init()
     console.log("CartMapper Module Initialized (v" + VERSION + ")");
     const DMARange = new AddressRange(PI_RD_LEN_REG, PI_WR_LEN_REG + 3);
     callbackDMAidWR = events.onwrite(DMARange, callbackDMA);
-
+    interrupt(false);
     INIT = true;
 }
 
@@ -29,6 +29,7 @@ function verbose(set)
 function interrupt(set)
 {
     //Set CART Interrupt
+    LogVerbose(2, "Set CART Interrupt to " + set);
 	if (set == true)
         cpu.cop0.cause |= 0x800;
     else if (set == false)
@@ -138,7 +139,7 @@ function callbackDMA(e)
                 else
                 {
                     //CART -> RAM
-                    
+
                     //Call before Read from Address
                     if (typeof MAPPER[i].call === "function")
                         MAPPER[i].call(OS_READ, dma.cartAddr, dma.length);
@@ -214,7 +215,7 @@ function callbackRDWR(e, direction)
 
                     cpu.gpr[e.reg] = ReadBuffer(e.valueType, MAPPER[i].data, datastart);
                     
-                    LogVerbose(2, "RW  BUF " + " <- " + e.address.hex(8));
+                    LogVerbose(2, "RD  BUF " + " <- " + e.address.hex(8) + " : " + cpu.gpr[e.reg].hex(8));
                 }
                 else
                 {
@@ -225,7 +226,7 @@ function callbackRDWR(e, direction)
                     if (typeof MAPPER[i].call === "function")
                         MAPPER[i].call(OS_WRITE, e.address, TypeToLength(e.valueType));
                     
-                    LogVerbose(2, "RW  BUF " + " -> " + e.address.hex(8));
+                    LogVerbose(2, "WR  BUF " + " -> " + e.address.hex(8) + " : " + e.value.hex(8));
                 }
             }
             else if (typeof MAPPER[i].data === "function")
@@ -241,7 +242,7 @@ function callbackRDWR(e, direction)
                         MAPPER[i].call(OS_READ, e.address, TypeToLength(e.valueType));
                     
                     cpu.gpr[e.reg] = MAPPER[i].data(OS_READ, e.valueType, e.address, 0);
-                    LogVerbose(2, "RW  BUF " + " <- " + e.address.hex(8));
+                    LogVerbose(2, "RD  FUN " + " <- " + e.address.hex(8) + " : " + cpu.gpr[e.reg].hex(8));
                 }
                 else
                 {
@@ -252,7 +253,7 @@ function callbackRDWR(e, direction)
                     if (typeof MAPPER[i].call === "function")
                         MAPPER[i].call(OS_WRITE, e.address, TypeToLength(e.valueType));
                     
-                    LogVerbose(2, "RW  BUF " + " -> " + e.address.hex(8));
+                    LogVerbose(2, "WR  FUN " + " -> " + e.address.hex(8) + " : " + e.value.hex(8));
                 }
             }
             return;

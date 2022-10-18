@@ -6,6 +6,11 @@ console.log("Mario Artist Talent Studio - SFX Suppress");
 //Movie Studio Mode:
 //801C0378 (Var) - Music Mode (0 to 4)
 
+console.log("SongEffectMode, TalentMusicMode, MovieMusicMode");
+var SongEffectMode = 0;
+var TalentMusicMode = 0;
+var MovieMusicMode = 0;
+
 //FIFO Sound
 events.onexec(0x80158918, function(addr)
 {
@@ -19,5 +24,12 @@ events.onexec(0x80158918, function(addr)
 //Force Song Effect
 events.onexec(0x80169C5C, function(addr)
 {
-    cpu.gpr.a0 = 0x03;
+    cpu.gpr.a0 = SongEffectMode;
+})
+
+//Force Music Mode
+events.onexec(0x80169D94, function(addr)
+{
+    mem.u32[0x801C0374] = TalentMusicMode;
+    mem.u32[0x801C0378] = MovieMusicMode;
 })

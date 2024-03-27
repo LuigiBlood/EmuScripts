@@ -50,7 +50,7 @@ prevScreenBuffer = {}
 function GetMousePositionHUD()
 	local mouse = emu.getMouseState()
 	local ret = {}
-	ret.x = (mouse.x - hud.x) / hud.x_scale
+	ret.x = (mouse.x - hud.x) / hud.x_scale + 0.25
 	ret.y = (mouse.y - hud.y) / 8
 	ret.left = mouse.left
 
@@ -322,8 +322,8 @@ function HandleROBState()
 end
 
 function DrawROB(x, y)
-	emu.drawRectangle(x - 5, y - 4, hud.x_scale*5 + 8, 8*(phys.y_max+1) + 2, 0x003F3F00, 0)
-	emu.drawRectangle(x - 4, y - 3, hud.x_scale*5 + 6, 8*(phys.y_max+1), 0x3F1F1F00, 1)
+	emu.drawRectangle(x - 5, y - 4, hud.x_scale*5 + 10 - (hud.x_scale - 8), 8*(phys.y_max+1) + 2, 0x003F3F00, 0)
+	emu.drawRectangle(x - 4, y - 3, hud.x_scale*5 + 8 - (hud.x_scale - 8), 8*(phys.y_max+1) + 0, 0x3F1F1F00, 1)
 
 	--ROB face
 	--emu.drawRectangle(x + 10, y + 3, 20, 10, 0x3FFFFFFF, 0)

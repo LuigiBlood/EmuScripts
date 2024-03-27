@@ -617,11 +617,11 @@ function DrawBlockObject(self, x, y)
 	if self.grabbed == 1 or self.mousegrab == 1 then color = self.colorgrab end
 	emu.drawRectangle(x + (self.x * x_scale), y + (self.y * 8), 8, 8, color, 1)
 	--highlight
-	emu.drawLine(x + (self.x * x_scale), y + (self.y * 8), x + (self.x * 8) + 7, y + (self.y * 8), self.colorgrab)
-	emu.drawLine(x + (self.x * x_scale), y + (self.y * 8), x + (self.x * 8), y + (self.y * 8) + 7, self.colorgrab)
+	emu.drawLine(x + (self.x * x_scale), y + (self.y * 8), x + (self.x * x_scale) + 7, y + (self.y * 8), self.colorgrab)
+	emu.drawLine(x + (self.x * x_scale), y + (self.y * 8), x + (self.x * x_scale), y + (self.y * 8) + 7, self.colorgrab)
 	--shadow
-	emu.drawLine(x + (self.x * x_scale) + 1, y + (self.y * 8) + 7, x + (self.x * 8) + 7, y + (self.y * 8) + 7, 0xAF000000)
-	emu.drawLine(x + (self.x * x_scale) + 7, y + (self.y * 8) + 1, x + (self.x * 8) + 7, y + (self.y * 8) + 7, 0xAF000000)
+	emu.drawLine(x + (self.x * x_scale) + 1, y + (self.y * 8) + 7, x + (self.x * x_scale) + 7, y + (self.y * 8) + 7, 0xAF000000)
+	emu.drawLine(x + (self.x * x_scale) + 7, y + (self.y * 8) + 1, x + (self.x * x_scale) + 7, y + (self.y * 8) + 7, 0xAF000000)
 
 end
 

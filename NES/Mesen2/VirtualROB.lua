@@ -36,7 +36,10 @@ hud = {
 
 config = {
 	--amount of frames for a gyro to spin
-	spin_max = 60*10
+	spin_max = 60*10,
+
+	--remove rob communication flash (anti-epilepsy)
+	remove_flash = true
 }
 
 objects = {}
@@ -415,10 +418,12 @@ function updateROB()
 	end
 
 	--Anti-Flashing
-	if frameCount > 0 or (frameCount == 0 and color == 0) then
-		emu.setScreenBuffer(prevScreenBuffer)
-	elseif color == -1 then
-		prevScreenBuffer = emu.getScreenBuffer()
+	if config.remove_flash == true then
+		if frameCount > 0 or (frameCount == 0 and color == 0) then
+			emu.setScreenBuffer(prevScreenBuffer)
+		elseif color == -1 then
+			prevScreenBuffer = emu.getScreenBuffer()
+		end
 	end
 
 	--Display

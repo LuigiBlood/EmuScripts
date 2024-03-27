@@ -29,6 +29,7 @@ red_press = 0
 
 y_base = 6.0
 y_max = 7.5
+x_scale = 10
 
 hud_x = 200
 hud_y = 172
@@ -42,8 +43,8 @@ prev_buffer = {}
 function GetMousePositionHUD()
 	local mouse = emu.getMouseState()
 	local ret = {}
-	ret.x = (mouse.x - hud_x) / 8.0
-	ret.y = (mouse.y - hud_y) / 8.0
+	ret.x = (mouse.x - hud_x) / x_scale
+	ret.y = (mouse.y - hud_y) / 8
 	ret.left = mouse.left
 
 	return ret
@@ -207,37 +208,45 @@ function StartCommand(command)
 		rob.xnext = math.floor(rob.x - 1 + 0.5)
 		if rob.xnext < 0 then return end
 		rob.state = 1
+		rob.led = 1
 	elseif currentCommand == 1000 then
 		--Right
 		rob.xnext = math.floor(rob.x + 1 + 0.5)
 		if rob.xnext > 4 then return end
 		rob.state = 2
+		rob.led = 1
 	elseif currentCommand == 1100 then
 		--Up + 1
 		rob.ynext = math.floor(rob.y - 1 + 0.5)
 		if rob.ynext < 0 then rob.ynext = 0 end
 		rob.state = 3
+		rob.led = 1
 	elseif currentCommand == 0101 then
 		--Up + 2
 		rob.ynext = math.floor(rob.y - 2 + 0.5)
 		if rob.ynext < 0 then rob.ynext = 0 end
 		rob.state = 3
+		rob.led = 1
 	elseif currentCommand == 0010 then
 		--Down + 1
 		rob.ynext = math.floor(rob.y + 1 + 0.5)
 		if rob.ynext > y_base - 1 then rob.ynext = y_base - 1 end
 		rob.state = 4
+		rob.led = 1
 	elseif currentCommand == 1101 then
 		--Down + 2
 		rob.ynext = math.floor(rob.y + 2 + 0.5)
 		if rob.ynext > y_base - 1 then rob.ynext = y_base - 1 end
 		rob.state = 4
+		rob.led = 1
 	elseif currentCommand == 1010 then
 		--Open
 		rob.state = 5
+		rob.led = 1
 	elseif currentCommand == 0110 then
 		--Close
 		rob.state = 6
+		rob.led = 1
 	end
 end
 
@@ -249,6 +258,7 @@ function HandleROBState()
 		else
 			rob.x = rob.xnext
 			rob.state = 0
+			rob.led = 0
 			currentCommand = 0
 		end
 	elseif rob.state == 2 then
@@ -258,6 +268,7 @@ function HandleROBState()
 		else
 			rob.x = rob.xnext
 			rob.state = 0
+			rob.led = 0
 			currentCommand = 0
 		end
 	elseif rob.state == 3 then
@@ -267,6 +278,7 @@ function HandleROBState()
 		else
 			rob.y = rob.ynext
 			rob.state = 0
+			rob.led = 0
 			currentCommand = 0
 		end
 	elseif rob.state == 4 then
@@ -276,6 +288,7 @@ function HandleROBState()
 		else
 			rob.y = rob.ynext
 			rob.state = 0
+			rob.led = 0
 			currentCommand = 0
 		end
 	elseif rob.state == 5 then
@@ -285,6 +298,7 @@ function HandleROBState()
 		else
 			rob.arms = rob.arms_max
 			rob.state = 0
+			rob.led = 0
 			currentCommand = 0
 		end
 	elseif rob.state == 6 then
@@ -294,14 +308,15 @@ function HandleROBState()
 		else
 			rob.arms = 0
 			rob.state = 0
+			rob.led = 0
 			currentCommand = 0
 		end
 	end
 end
 
 function DrawROB(x, y)
-	emu.drawRectangle(x - 4, y - 4, 8*5 + 8, 8*(y_max+1) + 2, 0x003F3F00, 0)
-	emu.drawRectangle(x - 3, y - 3, 8*5 + 6, 8*(y_max+1), 0x3F1F1F00, 1)
+	emu.drawRectangle(x - 5, y - 4, x_scale*5 + 8, 8*(y_max+1) + 2, 0x003F3F00, 0)
+	emu.drawRectangle(x - 4, y - 3, x_scale*5 + 6, 8*(y_max+1), 0x3F1F1F00, 1)
 
 	--ROB face
 	--emu.drawRectangle(x + 10, y + 3, 20, 10, 0x3FFFFFFF, 0)
@@ -309,18 +324,18 @@ function DrawROB(x, y)
 	--emu.drawRectangle(x + 22, y + 5, 6, 6, 0x3FFFFFFF, 0)
 	--emu.drawRectangle(x + 17, y + 13, 6, 20, 0x3FFFFFFF, 0)
 	
-	emu.drawRectangle(x + 17, y - 3, 6, 3, 0x3FFF7F7F, rob.led)
+	emu.drawRectangle(x + 1 + 2 * x_scale, y - 3, 6, 3, 0x3FFF7F7F, rob.led)
 
 	--center of arms
-	emu.drawPixel(x + 3 + (rob.x * 8), y + 3 + (rob.y * 8), 0x3F7FFF7F)
-	emu.drawPixel(x + 4 + (rob.x * 8), y + 4 + (rob.y * 8), 0x3F7FFF7F)
+	emu.drawPixel(x + 3 + (rob.x * x_scale), y + 3 + (rob.y * 8), 0x3F7FFF7F)
+	emu.drawPixel(x + 4 + (rob.x * x_scale), y + 4 + (rob.y * 8), 0x3F7FFF7F)
 	--emu.drawRectangle(x + (rob.x * 8), y + (rob.y * 8), 8, 8, 0x3F7FFF7F, 0)
 	
 	DrawObjects(x, y)
 
 	--arms
-	emu.drawRectangle(x + 0 + (rob.x * 8) - rob.arms, y + (rob.y * 8), 4, 8, 0x3F7FFF7F, 0)
-	emu.drawRectangle(x + 4 + (rob.x * 8) + rob.arms, y + (rob.y * 8), 4, 8, 0x3F7FFF7F, 0)
+	emu.drawRectangle(x + 0 + (rob.x * x_scale) - rob.arms, y + (rob.y * 8), 4, 8, 0x3F7FFF7F, 0)
+	emu.drawRectangle(x + 4 + (rob.x * x_scale) + rob.arms, y + (rob.y * 8), 4, 8, 0x3F7FFF7F, 0)
 end
 
 function CheckScreen()
@@ -443,22 +458,22 @@ function DrawGyroObject(self, x, y)
 	if self.grabbed == 1 or self.mousegrab == 1 then color = self.colorgrab end
 
 	if self.y <= y_base then
-		emu.drawRectangle(x + 0 + (self.x * 8), y + 1 + (self.y * 8), 8, 2, color, 1)
-		emu.drawRectangle(x + 1 + (self.x * 8), y + 3 + (self.y * 8), 6, 2, color, 1)
-		emu.drawRectangle(x + 2 + (self.x * 8), y + 5 + (self.y * 8), 4, 2, color, 1)
-		emu.drawRectangle(x + 3 + (self.x * 8), y + 7 + (self.y * 8), 2, 2, color, 1)
+		emu.drawRectangle(x + 0 + (self.x * x_scale), y + 1 + (self.y * 8), 8, 2, color, 1)
+		emu.drawRectangle(x + 1 + (self.x * x_scale), y + 3 + (self.y * 8), 6, 2, color, 1)
+		emu.drawRectangle(x + 2 + (self.x * x_scale), y + 5 + (self.y * 8), 4, 2, color, 1)
+		emu.drawRectangle(x + 3 + (self.x * x_scale), y + 7 + (self.y * 8), 2, 2, color, 1)
 	else
-		emu.drawRectangle(x + 1 + (self.x * 8), y + 0 + (self.y * 8), 2, 8, color, 1)
-		emu.drawRectangle(x + 3 + (self.x * 8), y + 1 + (self.y * 8), 2, 6, color, 1)
-		emu.drawRectangle(x + 5 + (self.x * 8), y + 2 + (self.y * 8), 2, 4, color, 1)
-		emu.drawRectangle(x + 7 + (self.x * 8), y + 3 + (self.y * 8), 2, 2, color, 1)
+		emu.drawRectangle(x + 1 + (self.x * x_scale), y + 0 + (self.y * 8), 2, 8, color, 1)
+		emu.drawRectangle(x + 3 + (self.x * x_scale), y + 1 + (self.y * 8), 2, 6, color, 1)
+		emu.drawRectangle(x + 5 + (self.x * x_scale), y + 2 + (self.y * 8), 2, 4, color, 1)
+		emu.drawRectangle(x + 7 + (self.x * x_scale), y + 3 + (self.y * 8), 2, 2, color, 1)
 	end
 
 	if self.spin > 0 then
 		local frames = 7 - emu.getState().frameCount % 8
 		if (self.spin <= 60*5) then frames = 8 - emu.getState().frameCount % 16 / 2 end
 		if (self.spin <= 60*2) then frames = 8 - emu.getState().frameCount % 32 / 4 end
-		emu.drawPixel(x + 0 + (self.x * 8) + frames, y + 0 + (self.y * 8), 0x00FFFFFF)
+		emu.drawPixel(x + 0 + (self.x * x_scale) + frames, y + 0 + (self.y * 8), 0x00FFFFFF)
 	end
 end
 
@@ -472,8 +487,8 @@ function HandleGyroObject(self)
 end
 
 function DrawGyroMotorObject(self, x, y)
-	emu.drawRectangle(x + 2 + (self.x * 8), y + 0 + (self.y * 8), 4, 2, self.color, 1)
-	emu.drawRectangle(x + 1 + (self.x * 8), y + 2 + (self.y * 8), 6, 2, self.color, 1)
+	emu.drawRectangle(x + 2 + (self.x * x_scale), y + 0 + (self.y * 8), 4, 2, self.color, 1)
+	emu.drawRectangle(x + 1 + (self.x * x_scale), y + 2 + (self.y * 8), 6, 2, self.color, 1)
 end
 
 function HandleGyroMotorObject(self)
@@ -482,7 +497,7 @@ function HandleGyroMotorObject(self)
 end
 
 function DrawGyroButtonObject(self, x, y)
-	emu.drawRectangle(x + 1 + (self.x * 8), y + 0 + (self.y * 8) + self.pressed, 6, 2, self.color, 1)
+	emu.drawRectangle(x + 1 + (self.x * x_scale), y + 0 + (self.y * 8) + self.pressed, 6, 2, self.color, 1)
 end
 
 function HandleGyroButtonObject(self)
@@ -600,21 +615,21 @@ end
 function DrawBlockObject(self, x, y)
 	local color = self.color
 	if self.grabbed == 1 or self.mousegrab == 1 then color = self.colorgrab end
-	emu.drawRectangle(x + (self.x * 8), y + (self.y * 8), 8, 8, color, 1)
+	emu.drawRectangle(x + (self.x * x_scale), y + (self.y * 8), 8, 8, color, 1)
 	--highlight
-	emu.drawLine(x + (self.x * 8), y + (self.y * 8), x + (self.x * 8) + 7, y + (self.y * 8), self.colorgrab)
-	emu.drawLine(x + (self.x * 8), y + (self.y * 8), x + (self.x * 8), y + (self.y * 8) + 7, self.colorgrab)
+	emu.drawLine(x + (self.x * x_scale), y + (self.y * 8), x + (self.x * 8) + 7, y + (self.y * 8), self.colorgrab)
+	emu.drawLine(x + (self.x * x_scale), y + (self.y * 8), x + (self.x * 8), y + (self.y * 8) + 7, self.colorgrab)
 	--shadow
-	emu.drawLine(x + (self.x * 8) + 1, y + (self.y * 8) + 7, x + (self.x * 8) + 7, y + (self.y * 8) + 7, 0xAF000000)
-	emu.drawLine(x + (self.x * 8) + 7, y + (self.y * 8) + 1, x + (self.x * 8) + 7, y + (self.y * 8) + 7, 0xAF000000)
+	emu.drawLine(x + (self.x * x_scale) + 1, y + (self.y * 8) + 7, x + (self.x * 8) + 7, y + (self.y * 8) + 7, 0xAF000000)
+	emu.drawLine(x + (self.x * x_scale) + 7, y + (self.y * 8) + 1, x + (self.x * 8) + 7, y + (self.y * 8) + 7, 0xAF000000)
 
 end
 
 function DrawHolderObject(self, x, y)
-	emu.drawRectangle(x + 1 + (self.x * 8), y + (self.y * 8), 6, 4, self.color, 1)
+	emu.drawRectangle(x + 1 + (self.x * x_scale), y + (self.y * 8), 6, 4, self.color, 1)
 	--shadow
-	emu.drawLine(x + (self.x * 8) + 1, y + (self.y * 8) + 0, x + (self.x * 8) + 6, y + (self.y * 8) + 0, 0xAF000000)
-	emu.drawLine(x + (self.x * 8) + 1, y + (self.y * 8) + 3, x + (self.x * 8) + 6, y + (self.y * 8) + 3, 0xAF000000)
+	emu.drawLine(x + (self.x * x_scale) + 1, y + (self.y * 8) + 3, x + (self.x * x_scale) + 6, y + (self.y * 8) + 3, 0xAF000000)
+	emu.drawLine(x + (self.x * x_scale) + 1, y + (self.y * 8) + 0, x + (self.x * x_scale) + 6, y + (self.y * 8) + 0, 0xAF000000)
 end
 
 function StartRobotBlock()

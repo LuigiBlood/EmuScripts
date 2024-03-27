@@ -356,9 +356,10 @@ function CheckScreen()
 		-- If that color is largely present on screen, then return 1
 		return 1;
 	elseif amount <= 0x1000 then
-		-- Else it's probably just the game screen so just return 0
+		-- If that color is almost never present on screen, then return 0
 		return 0;
 	else
+		-- Else it's probably just the game screen so just return -1
 		return -1;
 	end
 end
@@ -379,7 +380,6 @@ function updateROB()
 	elseif frameCount == 3 then
 		--bit3
 		frameCount = frameCount + 1
-		--emu.drawString(120, 24, "bit3 = " .. color, 0xFFFFFF, 0xFF000000)
 		if color == 1 then
 			command = 1000
 		else
@@ -390,7 +390,6 @@ function updateROB()
 	elseif frameCount == 5 then
 		--bit2
 		frameCount = frameCount + 1
-		--emu.drawString(120, 24, "bit2 = " .. color, 0xFFFFFF, 0xFF000000)
 		if color == 1 then
 			command = command + 0100
 		end
@@ -399,7 +398,6 @@ function updateROB()
 	elseif frameCount == 7 then
 		--bit1
 		frameCount = frameCount + 1
-		--emu.drawString(120, 24, "bit1 = " .. color, 0xFFFFFF, 0xFF000000)
 		if color == 1 then
 			command = command + 0010
 		end
@@ -408,7 +406,6 @@ function updateROB()
 	elseif frameCount == 9 then
 		--bit0
 		frameCount = frameCount + 1
-		--emu.drawString(120, 24, "bit0 = " .. color, 0xFFFFFF, 0xFF000000)
 		if color == 1 then
 			command = command + 0001
 		end
@@ -425,23 +422,6 @@ function updateROB()
 			prevScreenBuffer = emu.getScreenBuffer()
 		end
 	end
-
-	--Display
-	--emu.drawRectangle(0, 0, 256, 50, 0x3F000000, 1)
-	
-	--emu.drawString(12, 12, "Frame: " .. frameCount, 0xFFFFFF, 0xFF000000)
-	--emu.drawString(70, 12, "Color: " .. color, 0xFFFFFF, 0xFF000000)
-	--emu.drawString(120, 12, "Command: " .. currentCommand, 0xFFFFFF, 0xFF000000)
-	--emu.drawString(200, 12, "State: " .. rob.state, 0xFFFFFF, 0xFF000000)
-	
-	--emu.drawString(12, 12*2, "X Pos: " .. rob.x, 0xFFFFFF, 0xFF000000)
-	--emu.drawString(12, 12*3, "Y Pos: " .. rob.y, 0xFFFFFF, 0xFF000000)
-	
-	--emu.drawString(10, 12*0, "Gyro1 X: " .. objects.gyro1.x, 0xFFFFFF, 0xFF000000)
-	--emu.drawString(10, 12*1, "Gyro1 Y: " .. objects.gyro1.y, 0xFFFFFF, 0xFF000000)
-
-	--emu.drawString(10, 12*2, "Gyro2 X: " .. objects.gyro2.x, 0xFFFFFF, 0xFF000000)
-	--emu.drawString(10, 12*3, "Gyro2 Y: " .. objects.gyro2.y, 0xFFFFFF, 0xFF000000)
 
 	DrawROB(hud.x, hud.y)
 	DrawMouseDebug()

@@ -514,10 +514,23 @@ end
 
 function HandleGyroObject(self)
 	HandlePhysicsObject(self)
+	--Handle Spin
 	if self.spin > 0 then self.spin = self.spin - 1 end
+	--If the Gyro fell down then stop spinning
 	if self.y > phys.y_base then self.spin = 0 end
+	--If it's on a button and it stopped spinning while not grabbed then fall down
 	if objects.bluebtn.x == self.x or objects.redbtn.x == self.x then
 		if self.grabbed == 0 and self.spin <= 0 and self.y == phys.y_base - 1 then self.x = self.x - 0.2 end
+	end
+	--If it falls on another gyro then both should fall
+	local upobj = FindAboveObject(self.x, self.y)
+	if upobj ~= nil and (upobj.name == "gyro1" or upobj.name == "gyro2") then
+		if objects.bluebtn.x == self.x or objects.redbtn.x == self.x then
+			self.x = self.x - rob.x_speed
+		end
+		if upobj.grabbed == 0 and upobj.mousegrab == 0 then
+			upobj.x = upobj.x + rob.x_speed
+		end
 	end
 end
 

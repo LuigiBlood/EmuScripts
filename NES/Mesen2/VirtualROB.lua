@@ -39,7 +39,10 @@ config = {
 	spin_max = 60*10,
 
 	--remove rob communication flash (anti-epilepsy)
-	remove_flash = true
+	remove_flash = true,
+
+	--automatically move fallen gyros to a safe place
+	automove_gyro = true,
 }
 
 objects = {}
@@ -492,7 +495,7 @@ function DrawGyroObject(self, x, y)
 	local color = self.color
 	if self.grabbed == 1 or self.mousegrab == 1 then color = self.colorgrab end
 
-	if self.y <= phys.y_base then
+	if self.y <= phys.y_base - 0.8 then
 		emu.drawRectangle(x + 0 + (self.x * hud.x_scale), y + 1 + (self.y * 8), 8, 2, color, 1)
 		emu.drawRectangle(x + 1 + (self.x * hud.x_scale), y + 3 + (self.y * 8), 6, 2, color, 1)
 		emu.drawRectangle(x + 2 + (self.x * hud.x_scale), y + 5 + (self.y * 8), 4, 2, color, 1)
@@ -530,6 +533,20 @@ function HandleGyroObject(self)
 		end
 		if upobj.grabbed == 0 and upobj.mousegrab == 0 then
 			upobj.x = upobj.x + rob.x_speed
+		end
+	end
+	--auto move gyro when fallen
+	if self.mousegrab == 0 and config.automove_gyro == true and self.y >= (phys.y_base + 0.5) then
+		local upobj = FindAboveObject(objects.holder1.x, objects.holder1.y)
+		if upobj == nil then
+			self.x = objects.holder1.x
+			self.y = objects.holder1.y - 1
+		else
+			upobj = FindAboveObject(objects.holder2.x, objects.holder2.y)
+			if upobj == nil then
+				self.x = objects.holder2.x
+				self.y = objects.holder2.y - 1
+			end
 		end
 	end
 end

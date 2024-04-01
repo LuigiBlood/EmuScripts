@@ -99,6 +99,28 @@ function FindIfObjectWasGrabbedByMouse()
 	return false
 end
 
+function ClearObjects()
+	objects = {}
+end
+
+function AddObject(_name, _x, _y, _locked, _color, _draw, _handle)
+	objects[_name] = {
+		name = _name,
+		x = _x,
+		y = _y,
+		locked = _locked,
+
+		gravity = 0,
+		grabbed = 0,
+		falling = 0,
+		mousegrab = 0,
+
+		color = _color,
+		draw = _draw,
+		handle = _handle
+	}
+end
+
 function HandlePhysicsObject(self)
 	--If Locked, don't apply physics
 	if self.locked == 1 then return end
@@ -519,108 +541,28 @@ function HandleGyroButtonObject(self)
 end
 
 function StartRobotGyro()
-	objects = {}
-	objects.gyro1 = {
-		x = 0,
-		y = phys.y_base - 1,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		mousegrab = 0,
-	
-		spin = 0,
-		color = 0x3F7F7F3F,
-		colorgrab = 0x3FFFFF7F,
-		draw = DrawGyroObject,
-		handle = HandleGyroObject
-	}
-	
-	objects.gyro2 = {
-		x = 1,
-		y = phys.y_base - 1,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		mousegrab = 0,
-	
-		spin = 0,
-		color = 0x3F3F7F7F,
-		colorgrab = 0x3F7FFFFF,
-		draw = DrawGyroObject,
-		handle = HandleGyroObject
-	}
-	
-	objects.spinner = {
-		x = 4,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
-	
-		color = 0x3FFFFFFF,
-		draw = DrawGyroMotorObject,
-		handle = HandleGyroMotorObject
-	}
-	
-	objects.bluebtn = {
-		x = 2,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
-	
-		pressed = 0,
-		color = 0x3F7F7FFF,
-		draw = DrawGyroButtonObject,
-		handle = HandleGyroButtonObject
-	}
-	
-	objects.redbtn = {
-		x = 3,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
-	
-		pressed = 0,
-		color = 0x3FFF7F7F,
-		draw = DrawGyroButtonObject,
-		handle = HandleGyroButtonObject
-	}
+	ClearObjects()
 
-	objects.holder1 = {
-		x = 0,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
+	AddObject("gyro1", 0, phys.y_base - 1, 0, 0x3F7F7F3F, DrawGyroObject, HandleGyroObject)
+	objects.gyro1.colorgrab = 0x3FFFFF7F
+	objects.gyro1.spin = 0
 
-		color = 0x3F7F7F7F,
-		draw = DrawHolderObject,
-		handle = HandlePhysicsObject
-	}
+	AddObject("gyro2", 1, phys.y_base - 1, 0, 0x3F3F7F7F, DrawGyroObject, HandleGyroObject)
+	objects.gyro2.colorgrab = 0x3F7FFFFF
+	objects.gyro2.spin = 0
 
-	objects.holder2 = {
-		x = 1,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
+	AddObject("spinner", 4, phys.y_base, 1, 0x3FFFFFFF, DrawGyroMotorObject, HandleGyroMotorObject)
+	
+	AddObject("bluebtn", 2, phys.y_base, 1, 0x3F7F7FFF, DrawGyroButtonObject, HandleGyroButtonObject)
+	objects.bluebtn.pressed = 0
 
-		color = 0x3F7F7F7F,
-		draw = DrawHolderObject,
-		handle = HandlePhysicsObject
-	}
+	AddObject("redbtn", 3, phys.y_base, 1, 0x3FFF7F7F, DrawGyroButtonObject, HandleGyroButtonObject)
+	objects.redbtn.pressed = 0
+
+	AddObject("holder1", 0, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
+
+	AddObject("holder2", 1, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
+
 	emu.displayMessage("Script", "Virtual ROB - Robot Gyro")
 end
 
@@ -646,154 +588,28 @@ function DrawHolderObject(self, x, y)
 end
 
 function StartRobotBlock()
-	objects = {}
+	ClearObjects()
 
-	objects.blockred = {
-		x = 0,
-		y = phys.y_base - 1,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		mousegrab = 0,
+	AddObject("blockred", 0, phys.y_base - 1, 0, 0x1FAF0F0F, DrawBlockObject, HandlePhysicsObject)
+	objects.blockred.colorgrab = 0x1FFF3F3F
 
-		spin = 0,
-		color = 0x1FAF0F0F,
-		colorgrab = 0x1FFF3F3F,
-		draw = DrawBlockObject,
-		handle = HandlePhysicsObject
-	}
+	AddObject("blockwhite", 1, phys.y_base - 1, 0, 0x1FAFAFAF, DrawBlockObject, HandlePhysicsObject)
+	objects.blockwhite.colorgrab = 0x1FFFFFFF
 
-	objects.blockwhite = {
-		x = 1,
-		y = phys.y_base - 1,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		mousegrab = 0,
+	AddObject("blockblue", 2, phys.y_base - 1, 0, 0x1F0F4FAF, DrawBlockObject, HandlePhysicsObject)
+	objects.blockblue.colorgrab = 0x1F8F8FFF
 
-		spin = 0,
-		color = 0x1FAFAFAF,
-		colorgrab = 0x1FFFFFFF,
-		draw = DrawBlockObject,
-		handle = HandlePhysicsObject
-	}
+	AddObject("blockyellow", 3, phys.y_base - 1, 0, 0x1FCFCF00, DrawBlockObject, HandlePhysicsObject)
+	objects.blockyellow.colorgrab = 0x1FFFFF3F
 
-	objects.blockblue = {
-		x = 2,
-		y = phys.y_base - 1,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		mousegrab = 0,
+	AddObject("blockgreen", 4, phys.y_base - 1, 0, 0x1F0FAF0F, DrawBlockObject, HandlePhysicsObject)
+	objects.blockgreen.colorgrab = 0x1F3FFF3F
 
-		spin = 0,
-		color = 0x1F0F4FAF,
-		colorgrab = 0x1F8F8FFF,
-		draw = DrawBlockObject,
-		handle = HandlePhysicsObject
-	}
-
-	objects.blockyellow = {
-		x = 3,
-		y = phys.y_base - 1,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		mousegrab = 0,
-
-		spin = 0,
-		color = 0x1FCFCF00,
-		colorgrab = 0x1FFFFF3F,
-		draw = DrawBlockObject,
-		handle = HandlePhysicsObject
-	}
-
-	objects.blockgreen = {
-		x = 4,
-		y = phys.y_base - 1,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		mousegrab = 0,
-
-		spin = 0,
-		color = 0x1F0FAF0F,
-		colorgrab = 0x1F3FFF3F,
-		draw = DrawBlockObject,
-		handle = HandlePhysicsObject
-	}
-
-
-
-	objects.holder1 = {
-		x = 0,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
-
-		color = 0x3F7F7F7F,
-		draw = DrawHolderObject,
-		handle = HandlePhysicsObject
-	}
-
-	objects.holder2 = {
-		x = 1,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
-
-		color = 0x3F7F7F7F,
-		draw = DrawHolderObject,
-		handle = HandlePhysicsObject
-	}
-
-	objects.holder3 = {
-		x = 2,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
-
-		color = 0x3F7F7F7F,
-		draw = DrawHolderObject,
-		handle = HandlePhysicsObject
-	}
-
-	objects.holder4 = {
-		x = 3,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
-
-		color = 0x3F7F7F7F,
-		draw = DrawHolderObject,
-		handle = HandlePhysicsObject
-	}
-
-	objects.holder5 = {
-		x = 4,
-		y = phys.y_base,
-		gravity = 0,
-		grabbed = 0,
-		falling = 0,
-		locked = 1,
-		mousegrab = 0,
-
-		color = 0x3F7F7F7F,
-		draw = DrawHolderObject,
-		handle = HandlePhysicsObject
-	}
+	AddObject("holder1", 0, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
+	AddObject("holder2", 1, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
+	AddObject("holder3", 2, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
+	AddObject("holder4", 3, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
+	AddObject("holder5", 4, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
 
 	emu.displayMessage("Script", "Virtual ROB - Robot Block")
 end

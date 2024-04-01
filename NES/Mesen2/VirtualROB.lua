@@ -129,21 +129,18 @@ function HandlePhysicsObject(self)
 	end
 
 	--If Arms move to, or from the object horizontally, make it fall off
+	local fall_above = 0
+	local fall_below = 0
+	local fall_object = 0
 	if self.grabbed == 0 and (self.x >= rob.x - 0.2 and self.x <= rob.x + 0.2) and self.y == rob.y then
 		if rob.state == 1 then
-			local upobj = FindAboveObject(self.x, self.y)
-			while (upobj ~= nil) do
-				upobj.x = upobj.x - rob.x_speed
-				upobj = FindAboveObject(self.x, upobj.y)
-			end
-			self.x = self.x - rob.x_speed
+			fall_above = -1
+			fall_below = -1
+			fall_object = -1
 		elseif rob.state == 2 then
-			local upobj = FindAboveObject(self.x, self.y)
-			while (upobj ~= nil) do
-				upobj.x = upobj.x + rob.x_speed
-				upobj = FindAboveObject(self.x, upobj.y)
-			end
-			self.x = self.x + rob.x_speed
+			fall_above = 1
+			fall_below = 1
+			fall_object = 1
 		end
 	end
 
@@ -154,6 +151,31 @@ function HandlePhysicsObject(self)
 		end
 	end
 
+	--Handle Fall
+	if fall_above ~= 0 then
+		local upobj = FindAboveObject(self.x, self.y)
+		while (upobj ~= nil) do
+			if upobj.locked ~= 1 then
+				upobj.x = upobj.x + (rob.x_speed * fall_above)
+			end
+			upobj = FindAboveObject(self.x, upobj.y)
+		end
+	end
+
+	if fall_below ~= 0 then
+		local downobj = FindBelowObject(self.x, self.y)
+		while (downobj ~= nil) do
+			if downobj.locked ~= 1 then
+				downobj.x = downobj.x + (rob.x_speed * fall_below)
+			end
+			downobj = FindBelowObject(self.x, downobj.y)
+		end
+	end
+
+	if fall_object ~= 0 then
+		self.x = self.x + (rob.x_speed * fall_object)
+	end
+
 	--Handle Physics
 	local lowobj = FindBelowObject(self.x, self.y)
 	if (lowobj == nil) then lowobj = { y = phys.y_max } end
@@ -162,7 +184,9 @@ function HandlePhysicsObject(self)
 	if self.grabbed == 1 then
 		local upobj = FindAboveObject(self.x, self.y)
 		while (upobj ~= nil) do
-			upobj.x = rob.x
+			if upobj.locked ~= 1 then
+				upobj.x = rob.x
+			end
 			upobj = FindAboveObject(self.x, upobj.y)
 		end
 		self.x = rob.x

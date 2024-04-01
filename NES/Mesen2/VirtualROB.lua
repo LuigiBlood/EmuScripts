@@ -74,7 +74,7 @@ end
 --Generic Objects
 function FindAboveObject(x, y)
 	for k,v in pairs(objects) do
-		if v.x == x and v.y < y and v.y >= y - 1 then
+		if v.mousegrab == 0 and v.x == x and v.y < y and v.y >= y - 1 then
 			return v
 		end
 	end
@@ -83,7 +83,7 @@ end
 
 function FindBelowObject(x, y)
 	for k,v in pairs(objects) do
-		if v.x == x and v.y > y and v.y <= y + 1 then
+		if v.mousegrab == 0 and v.x == x and v.y > y and v.y <= y + 1 then
 			return v
 		end
 	end
@@ -524,7 +524,7 @@ function HandleGyroObject(self)
 	end
 	--If it falls on another gyro then both should fall
 	local upobj = FindAboveObject(self.x, self.y)
-	if upobj ~= nil and (upobj.name == "gyro1" or upobj.name == "gyro2") then
+	if self.mousegrab == 0 and upobj ~= nil and (upobj.name == "gyro1" or upobj.name == "gyro2") then
 		if objects.bluebtn.x == self.x or objects.redbtn.x == self.x then
 			self.x = self.x - rob.x_speed
 		end

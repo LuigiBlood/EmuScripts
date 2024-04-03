@@ -59,11 +59,13 @@ prevScreenBuffer = {}
 
 --Utility
 function drawStringShadow(x, y, text, color)
+	--draw String with a shadow
 	emu.drawString(x+1, y+1, text, 0x00000000, 0xFFFFFFFF)
 	emu.drawString(x, y, text, color, 0xFFFFFFFF)
 end
 
 function detectGame()
+	--detect and set the game config
 	local hash = emu.getRomInfo().fileSha1Hash
 	--emu.log(hash)
 
@@ -76,6 +78,7 @@ end
 
 --Mouse
 function GetMousePositionHUD()
+	--get mouse position within the ROB physics part
 	local mouse = emu.getMouseState()
 	local ret = {}
 	ret.x = (mouse.x - hud.x) / hud.x_scale + 0.25
@@ -86,6 +89,7 @@ function GetMousePositionHUD()
 end
 
 function DrawMouseDebug()
+	--draw mouse cursor
 	local mouse = emu.getMouseState()
 	emu.drawLine(mouse.x, mouse.y, mouse.x + 3, mouse.y, 0x00FFFFFF)
 	emu.drawLine(mouse.x, mouse.y, mouse.x, mouse.y + 3, 0x00FFFFFF)
@@ -162,6 +166,7 @@ function HandlePhysicsObject(self)
 		end
 	end
 	if self.mousegrab == 1 then
+		--When grabbed by mouse, snap to the horizontal grid
 		local mouse = GetMousePositionHUD()
 		self.x = math.min(math.max(math.floor(mouse.x), 0), 4)
 		self.y = mouse.y - 0.7
@@ -227,11 +232,13 @@ function HandlePhysicsObject(self)
 	end
 
 	--Handle Physics
+	--find if there's an object below, else make up an object at the bottom limit
 	local lowobj = FindBelowObject(self.x, self.y)
 	if (lowobj == nil) then lowobj = { y = phys.y_max } end
 	if lowobj.y > phys.y_base and self.x ~= math.floor(self.x) then lowobj = {y = phys.y_max} end
 
 	if self.grabbed == 1 then
+		--when grabbed by ROB, move all physical objects stacked above with it
 		local upobj = FindAboveObject(self.x, self.y)
 		while (upobj ~= nil) do
 			if upobj.locked ~= 1 then
@@ -243,6 +250,7 @@ function HandlePhysicsObject(self)
 		self.y = rob.y
 		self.gravity = 0
 	elseif self.y < lowobj.y - 1 then
+		--when not grabbed, fall until it finds an object
 		if self.gravity < phys.accel_max then
 			self.gravity = self.gravity + phys.accel
 		else
@@ -250,18 +258,21 @@ function HandlePhysicsObject(self)
 		end
 		self.y = self.y + self.gravity
 	else
+		--when not grabbed, and is right above an object, snap it to above the object to avoid precision issues
 		self.y = lowobj.y - 1
 		self.gravity = 0
 	end
 end
 
 function HandleObjects()
+	--handle all objects
 	for k,v in pairs(objects) do
 		v.handle(v)
 	end
 end
 
 function DrawObjects(x, y)
+	--draw all objects
 	for k,v in pairs(objects) do
 		v.draw(v, x, y)
 	end
@@ -677,7 +688,7 @@ end
 
 --GUI
 function DrawGUIMain(self)
-	--Options
+	--Options Icon
 	emu.drawRectangle(self.x, self.y, self.w, self.h, 0xCFFFFFFF, 1)
 	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x00FFFFFF, 0)
 	emu.drawLine(self.x + 10, self.y + 6, self.x + 6, self.y + 10, 0x00FFFFFF)
@@ -709,7 +720,7 @@ function DrawGUIMain(self)
 end
 
 function DrawGUIHelp(self)
-	--Options
+	--Help Icon
 	emu.drawRectangle(self.x, self.y, self.w, self.h, 0xCFFFFFFF, 1)
 	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x00FFFFFF, 0)
 

@@ -947,6 +947,102 @@ gui_button_startblock = {
 	var_handle = StartRobotBlock,
 }
 
+gui_text = {
+	gyro = {
+		text0 = "Robot Gyro / Gyromite Instructions:",
+		text_mode = {
+			"Test Mode:\nThis sends a signal so you can focus\nR.O.B.'s eyes to the T.V. screen.",
+			"Direct Mode:\nDirectly send commands to R.O.B. for testing.\nA good way to get familiar with the controls.",
+			"Game A Mode:\nControl Professor Hector and defuse all the\nbombs while avoiding Smicks. Use R.O.B. and\nthe gyros to move gates up and down.\nYou can use turnips with the A or B button\nto keep Smicks busy and pass through them.",
+			"Game A Mode:\nControl Professor Hector and defuse all the\nbombs while avoiding Smicks. Use R.O.B. and\nthe gyros to move gates up and down.\nYou can use turnips with the A or B button\nto keep Smicks busy and pass through them.",
+			"Game B Mode:\nProfessor Hector is walking in his sleep.\nUse R.O.B. and the gyros to move gates\nup and down and let him walk safely to the end.",
+		},
+		title_controls = "R.O.B. Controls:",
+		x_controls = 88,
+		y_controls = 155,
+		text_controls = {
+			{
+				dpad = "Move Arms",
+				select = "Exit",
+				b = "(B) Close Arms",
+				a = "(A) Open Arms",
+			},
+			{
+				dpad = "Move Arms",
+				select = "Exit",
+				b = "(B) Close Arms",
+				a = "(A) Open Arms",
+			},
+			{
+				dpad = "Move Arms",
+				select = "Pause",
+				start = "R.O.B. Mode (Game A)\n(When Paused) Exit",
+				b = "(B) Close Arms",
+				a = "(A) Open Arms",
+			},
+			{
+				dpad = "Move Arms",
+				select = "Pause",
+				start = "R.O.B. Mode (Game A)\n(When Paused) Exit",
+				b = "(B) Close Arms",
+				a = "(A) Open Arms",
+			},
+			{
+				dpad = "Move Arms",
+				select = "Pause",
+				start = "(When Paused) Exit",
+				b = "(B) Close Arms",
+				a = "(A) Open Arms",
+			},
+		},
+	},
+	block = {
+		text0 = "Robot Block / Stack-Up Instructions:",
+		text_mode = {
+			"Test Mode:\nThis sends a signal so you can focus\nR.O.B.'s eyes to the T.V. screen.",
+			"Direct Mode:\nDirectly send commands to R.O.B. and move\nthe colored blocks from a starting configuration\nto another with as few commands as possible.",
+			"Memory Mode:\nSet up a list of commands for R.O.B.\nto memorize and move the colored blocks from a\nstarting configuration to another with as\nfew commands as possible.",
+			"Bingo (1P) Mode:\nPress down a complete row or column of keys to\nsend a command to R.O.B. and move blocks from\na starting configuration to another with as\nfew commands as possible. Enemies will get in your\nway and may also send commands to R.O.B. too!",
+			"Bingo (2P) Mode:\nPress down a complete row or column of keys to\nsend a command to R.O.B. and move blocks from\nthe stack and compete to put the most blocks\nin their designated trays!",
+		},
+		title_controls = "Controls:",
+		x_controls = 52,
+		y_controls = 155,
+		text_controls = {
+			{
+				dpad = "Move",
+				select = "Exit",
+			},
+			{
+				dpad = "Move",
+				select = "Exit",
+				start = "Go To Next Phase",
+			},
+			{
+				dpad = "Move",
+				select = "Exit",
+				start = "Confirm / Go To Next Phase",
+				b = "(B) Select Command Left",
+				a = "(A) Select Command Right",
+			},
+			{
+				dpad = "Move",
+				select = "Exit",
+				start = "(When Paused)\nGo To Next Phase",
+				b = "(B) Pause",
+				a = "(A) Pause",
+			},
+			{
+				dpad = "Move",
+				select = "Exit",
+				start = "(When Paused)\nGo To Next Phase",
+				b = "(B) Pause",
+				a = "(A) Pause",
+			},
+		},
+	}
+}
+
 function DrawController(x, y)
 	--Main shape (x = 79, y = 79)
 	emu.drawRectangle(x+1, y+1, 52, 22, 0x00000000, 1)
@@ -1000,134 +1096,57 @@ function DrawGUI()
 		emu.drawRectangle(8, 61, 237, 1, 0x00FFFFFF, 0)
 
 		--Help
+		local game_mode = 0
 		if config.mode == "gyro" then
-			local game_mode = emu.read(0x5B, emu.memType.nesInternalRam, 0)
-			drawStringShadow(8, 68, "Robot Gyro / Gyromite Instructions:", 0x00FFFFFF, 0xFFFFFFFF)
+			game_mode = emu.read(0x5B, emu.memType.nesInternalRam, 0) + 1
+		elseif config.mode == "block" then
+			game_mode = emu.read(0x38, emu.memType.nesInternalRam, 0) + 1
+		end
+		drawStringShadow(8, 68, gui_text[config.mode].text0, 0x00FFFFFF, 0xFFFFFFFF)
+		drawStringShadow(8, 80, gui_text[config.mode].text_mode[game_mode], 0x00FFFFFF, 0xFFFFFFFF)
 
-			if game_mode == 0 then
-				drawStringShadow(8, 80, "Test Mode:\nThis sends a signal so you can focus\nR.O.B.'s eyes to the T.V. screen.", 0x00FFFFFF, 0xFFFFFFFF)
-			elseif game_mode == 1 then
-				drawStringShadow(8, 80, "Direct Mode:\nDirectly send commands to R.O.B. for testing.\nA good way to get familiar with the controls.", 0x00FFFFFF, 0xFFFFFFFF)
-			elseif game_mode == 2 or game_mode == 3 then
-				drawStringShadow(8, 80, "Game A Mode:\nControl Professor Hector and defuse all the\nbombs while avoiding Smicks. Use R.O.B. and\nthe gyros to move gates up and down.\nYou can use turnips with the A or B button\nto keep Smicks busy and pass through them.", 0x00FFFFFF, 0xFFFFFFFF)
-			else
-				drawStringShadow(8, 80, "Game B Mode:\nProfessor Hector is walking in his sleep.\nUse R.O.B. and the gyros to move gates\nup and down and let him walk safely to the end.", 0x00FFFFFF, 0xFFFFFFFF)
-			end
+		local rob_controls_x = gui_text[config.mode].x_controls
+		local rob_controls_y = gui_text[config.mode].y_controls
+		drawStringShadow(8, rob_controls_y-13, gui_text[config.mode].title_controls, 0x00FFFFFF, 0xFFFFFFFF)
+		--NES controller
+		DrawController(rob_controls_x, rob_controls_y)
 
-			local rob_controls_x = 88
-			local rob_controls_y = 155
-			drawStringShadow(8, rob_controls_y-13, "R.O.B. Controls:", 0x00FFFFFF, 0xFFFFFFFF)
-			--NES controller
-			DrawController(rob_controls_x, rob_controls_y)
-
-			drawStringShadow(rob_controls_x-71, rob_controls_y+8, "Move Arms", 0x00FFFFFF, 0xFFFFFFFF)
+		if gui_text[config.mode].text_controls[game_mode].dpad ~= nil then
+			local stringWidth = emu.measureString(gui_text[config.mode].text_controls[game_mode].dpad).width
+			drawStringShadow(rob_controls_x-22 - stringWidth, rob_controls_y+8, gui_text[config.mode].text_controls[game_mode].dpad, 0x00FFFFFF, 0xFFFFFFFF)
 			emu.drawLine(rob_controls_x+5, rob_controls_y+12, rob_controls_x-19, rob_controls_y+12, 0x00FFFFFF)
 			emu.drawLine(rob_controls_x+5, rob_controls_y+13, rob_controls_x-18, rob_controls_y+13, 0x00000000)
+		end
 
-			if game_mode == 0 or game_mode == 1 then
-				drawStringShadow(rob_controls_x-40, rob_controls_y+26, "Exit", 0x00FFFFFF, 0xFFFFFFFF)
-			else
-				drawStringShadow(rob_controls_x-48, rob_controls_y+26, "Pause", 0x00FFFFFF, 0xFFFFFFFF)
-			end
+		if gui_text[config.mode].text_controls[game_mode].select ~= nil then
+			local stringWidth = emu.measureString(gui_text[config.mode].text_controls[game_mode].select).width
+			drawStringShadow(rob_controls_x-22 - stringWidth, rob_controls_y+26, gui_text[config.mode].text_controls[game_mode].select, 0x00FFFFFF, 0xFFFFFFFF)
 			emu.drawLine(rob_controls_x+20, rob_controls_y+14, rob_controls_x+4, rob_controls_y+30, 0x00FFFFFF)
 			emu.drawLine(rob_controls_x+3, rob_controls_y+30, rob_controls_x-19, rob_controls_y+30, 0x00FFFFFF)
 			emu.drawLine(rob_controls_x+20, rob_controls_y+15, rob_controls_x+4, rob_controls_y+31, 0x00000000)
 			emu.drawLine(rob_controls_x+3, rob_controls_y+31, rob_controls_x-18, rob_controls_y+31, 0x00000000)
+		end
 
-			if game_mode == 2 or game_mode == 3 then
-				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "R.O.B. Mode (Game A)\n(When Paused) Exit", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
-			elseif game_mode == 4 then
-				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "(When Paused) Exit", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
-			end
+		if gui_text[config.mode].text_controls[game_mode].start ~= nil then
+			drawStringShadow(rob_controls_x+54, rob_controls_y+26, gui_text[config.mode].text_controls[game_mode].start, 0x00FFFFFF, 0xFFFFFFFF)
+			emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
+			emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
+		end
 
-			drawStringShadow(rob_controls_x+76, rob_controls_y-4, "(B) Close Arms", 0x00FFFFFF, 0xFFFFFFFF)
+		if gui_text[config.mode].text_controls[game_mode].b ~= nil then
+			drawStringShadow(rob_controls_x+76, rob_controls_y-4, gui_text[config.mode].text_controls[game_mode].b, 0x00FFFFFF, 0xFFFFFFFF)
 			emu.drawLine(rob_controls_x+37, rob_controls_y+13, rob_controls_x+51, rob_controls_y-1, 0x00FFFFFF)
 			emu.drawLine(rob_controls_x+51, rob_controls_y-1, rob_controls_x+71, rob_controls_y-1, 0x00FFFFFF)
 			emu.drawLine(rob_controls_x+38, rob_controls_y+13, rob_controls_x+51, rob_controls_y+0, 0x00000000)
 			emu.drawLine(rob_controls_x+52, rob_controls_y+0, rob_controls_x+72, rob_controls_y+0, 0x00000000)
+		end
 
+		if gui_text[config.mode].text_controls[game_mode].a ~= nil then
 			drawStringShadow(rob_controls_x+76, rob_controls_y+10, "(A) Open Arms", 0x00FFFFFF, 0xFFFFFFFF)
 			emu.drawLine(rob_controls_x+44, rob_controls_y+13, rob_controls_x+71, rob_controls_y+13, 0x00FFFFFF)
 			emu.drawLine(rob_controls_x+45, rob_controls_y+14, rob_controls_x+72, rob_controls_y+14, 0x00000000)
-		elseif config.mode == "block" then
-			local game_mode = emu.read(0x38, emu.memType.nesInternalRam, 0)
-			drawStringShadow(8, 68, "Robot Block / Stack-Up Instructions:", 0x00FFFFFF, 0xFFFFFFFF)
-
-			if game_mode == 0 then
-				drawStringShadow(8, 80, "Test Mode:\nThis sends a signal so you can focus\nR.O.B.'s eyes to the T.V. screen.", 0x00FFFFFF, 0xFFFFFFFF)
-			elseif game_mode == 1 then
-				drawStringShadow(8, 80, "Direct Mode:\nDirectly send commands to R.O.B. and move\nthe colored blocks from a starting configuration\nto another with as few commands as possible.", 0x00FFFFFF, 0xFFFFFFFF)
-			elseif game_mode == 2 then
-				drawStringShadow(8, 80, "Memory Mode:\nSet up a list of commands for R.O.B.\nto memorize and move the colored blocks from a\nstarting configuration to another with as\nfew commands as possible.", 0x00FFFFFF, 0xFFFFFFFF)
-			elseif game_mode == 3 then
-				drawStringShadow(8, 80, "Bingo (1P) Mode:\nPress down a complete row or column of keys to\nsend a command to R.O.B. and move blocks from\na starting configuration to another with as\nfew commands as possible. Enemies will get in your\nway and may also send commands to R.O.B. too!", 0x00FFFFFF, 0xFFFFFFFF)
-			elseif game_mode == 4 then
-				drawStringShadow(8, 80, "Bingo (2P) Mode:\nPress down a complete row or column of keys to\nsend a command to R.O.B. and move blocks from\nthe stack and compete to put the most blocks\nin their designated trays!", 0x00FFFFFF, 0xFFFFFFFF)
-			end
-
-			local rob_controls_x = 52
-			local rob_controls_y = 155
-			drawStringShadow(8, rob_controls_y-13, "Controls:", 0x00FFFFFF, 0xFFFFFFFF)
-			--NES controller
-			DrawController(rob_controls_x, rob_controls_y)
-
-			drawStringShadow(rob_controls_x-44, rob_controls_y+8, "Move", 0x00FFFFFF, 0xFFFFFFFF)
-			emu.drawLine(rob_controls_x+5, rob_controls_y+12, rob_controls_x-19, rob_controls_y+12, 0x00FFFFFF)
-			emu.drawLine(rob_controls_x+5, rob_controls_y+13, rob_controls_x-18, rob_controls_y+13, 0x00000000)
-
-			drawStringShadow(rob_controls_x-40, rob_controls_y+26, "Exit", 0x00FFFFFF, 0xFFFFFFFF)
-			emu.drawLine(rob_controls_x+20, rob_controls_y+14, rob_controls_x+4, rob_controls_y+30, 0x00FFFFFF)
-			emu.drawLine(rob_controls_x+3, rob_controls_y+30, rob_controls_x-19, rob_controls_y+30, 0x00FFFFFF)
-			emu.drawLine(rob_controls_x+20, rob_controls_y+15, rob_controls_x+4, rob_controls_y+31, 0x00000000)
-			emu.drawLine(rob_controls_x+3, rob_controls_y+31, rob_controls_x-18, rob_controls_y+31, 0x00000000)
-
-			if game_mode == 1 then
-				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "Go To Next Phase", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
-			elseif game_mode == 2 then
-				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "Confirm / Go To Next Phase", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
-			
-				drawStringShadow(rob_controls_x+76, rob_controls_y-4, "(B) Select Command Left", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+37, rob_controls_y+13, rob_controls_x+51, rob_controls_y-1, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+51, rob_controls_y-1, rob_controls_x+71, rob_controls_y-1, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+38, rob_controls_y+13, rob_controls_x+51, rob_controls_y+0, 0x00000000)
-				emu.drawLine(rob_controls_x+52, rob_controls_y+0, rob_controls_x+72, rob_controls_y+0, 0x00000000)
-
-				drawStringShadow(rob_controls_x+76, rob_controls_y+10, "(A) Select Command Right", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+44, rob_controls_y+13, rob_controls_x+71, rob_controls_y+13, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+14, rob_controls_x+72, rob_controls_y+14, 0x00000000)
-			elseif game_mode == 3 or game_mode == 4 then
-				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "(When Paused)\nGo To Next Phase", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
-			
-				drawStringShadow(rob_controls_x+76, rob_controls_y-4, "(B) Pause", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+37, rob_controls_y+13, rob_controls_x+51, rob_controls_y-1, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+51, rob_controls_y-1, rob_controls_x+71, rob_controls_y-1, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+38, rob_controls_y+13, rob_controls_x+51, rob_controls_y+0, 0x00000000)
-				emu.drawLine(rob_controls_x+52, rob_controls_y+0, rob_controls_x+72, rob_controls_y+0, 0x00000000)
-
-				drawStringShadow(rob_controls_x+76, rob_controls_y+10, "(A) Pause", 0x00FFFFFF, 0xFFFFFFFF)
-				emu.drawLine(rob_controls_x+44, rob_controls_y+13, rob_controls_x+71, rob_controls_y+13, 0x00FFFFFF)
-				emu.drawLine(rob_controls_x+45, rob_controls_y+14, rob_controls_x+72, rob_controls_y+14, 0x00000000)
-			end
 		end
 	end
 end

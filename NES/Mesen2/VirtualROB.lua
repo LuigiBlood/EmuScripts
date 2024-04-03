@@ -975,8 +975,6 @@ gui_text = {
 			{
 				dpad = "Move Arms",
 				select = "Exit",
-				b = "(B) Close Arms",
-				a = "(A) Open Arms",
 			},
 			{
 				dpad = "Move Arms",

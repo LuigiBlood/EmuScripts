@@ -1,5 +1,10 @@
 ﻿-- Virtual Robotic Operating Buddy (Mesen 2.0)
 -- Code by LuigiBlood
+if emu.getState().consoleType ~= "Nes" then
+  emu.displayMessage("Script", "This script only works on the NES.")
+  return
+end
+
 frameCount = 0
 command = 0
 currentCommand = 0
@@ -29,12 +34,15 @@ phys = {
 }
 
 hud = {
-	x = 200,
-	y = 172,
-	x_scale = 10
+	x = 170,
+	y = 170,
+	x_scale = 16
 }
 
 config = {
+	--mode for game specific stuff (nil, "gyro", "block")
+	mode = nil,
+
 	--amount of frames for a gyro to spin
 	spin_max = 60*10,
 
@@ -50,6 +58,23 @@ objects = {}
 prevScreenBuffer = {}
 
 --Utility
+function drawStringShadow(x, y, text, color)
+	emu.drawString(x+1, y+1, text, 0x00000000, 0xFFFFFFFF)
+	emu.drawString(x, y, text, color, 0xFFFFFFFF)
+end
+
+function detectGame()
+	local hash = emu.getRomInfo().fileSha1Hash
+	--emu.log(hash)
+
+	if hash == "78393A45CD01C8C014FE77F1648DFCCA17FE2B51" then
+		StartRobotGyro()
+	elseif hash == "93FE36D485636210F8FDDFBAB5D157193ACFB86F" then
+		StartRobotBlock()
+	end
+end
+
+--Mouse
 function GetMousePositionHUD()
 	local mouse = emu.getMouseState()
 	local ret = {}
@@ -418,6 +443,7 @@ function updateROB()
 	local color = CheckScreen()
 	HandleROBState()
 	HandleObjects()
+	HandleGUI()
 
 	-- Recognition
 	if frameCount == 0 and color == 1 then
@@ -473,6 +499,7 @@ function updateROB()
 	end
 
 	DrawROB(hud.x, hud.y)
+	DrawGUI()
 	DrawMouseDebug()
 end
 
@@ -483,6 +510,7 @@ function inputPoll()
 end
 
 function startROB()
+	detectGame()
 	emu.addEventCallback(updateROB, emu.eventType.endFrame)
 	emu.addEventCallback(inputPoll, emu.eventType.inputPolled)
 
@@ -593,6 +621,7 @@ function StartRobotGyro()
 
 	AddObject("holder2", 1, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
 
+	config.mode = "gyro"
 	emu.displayMessage("Script", "Virtual ROB - Robot Gyro")
 end
 
@@ -641,9 +670,476 @@ function StartRobotBlock()
 	AddObject("holder4", 3, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
 	AddObject("holder5", 4, phys.y_base, 1, 0x3F7F7F7F, DrawHolderObject, HandlePhysicsObject)
 
+	config.mode = "block"
 	emu.displayMessage("Script", "Virtual ROB - Robot Block")
 end
 
+--GUI
+function DrawGUIMain(self)
+	--Options
+	emu.drawRectangle(self.x, self.y, self.w, self.h, 0xCFFFFFFF, 1)
+	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x00FFFFFF, 0)
+	emu.drawLine(self.x + 10, self.y + 6, self.x + 6, self.y + 10, 0x00FFFFFF)
+	emu.drawLine(self.x + 10, self.y + 5, self.x + 5, self.y + 10, 0x00FFFFFF)
+	emu.drawLine(self.x + 09, self.y + 5, self.x + 5, self.y + 09, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 09, self.y + 3, 2, 3, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 10, self.y + 2, 2, 1, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 10, self.y + 5, 3, 2, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 13, self.y + 4, 1, 2, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 05, self.y + 10, 2, 3, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 04, self.y + 13, 2, 1, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 03, self.y + 09, 3, 2, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 02, self.y + 10, 1, 2, 0x00FFFFFF)
+
+	if self.hover then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0x8F0FFF0F, 1)
+
+		drawStringShadow(self.x + self.w + 25, self.y + (self.h / 4), self.text, 0x00FFFFFF, 0xFFFFFFFF)
+	end
+
+	if self.open then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0xCFFFFFFF, 1)
+		emu.drawRectangle(self.x + 1, self.y + 1, self.w - 2, self.h - 2, 0x8F000000, 0)
+	end
+
+	if self.hover and self.clicked then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0x8FFFFFFF, 1)
+	end
+end
+
+function DrawGUIHelp(self)
+	--Options
+	emu.drawRectangle(self.x, self.y, self.w, self.h, 0xCFFFFFFF, 1)
+	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x00FFFFFF, 0)
+
+	emu.drawRectangle(self.x + 4, self.y + 4, 2, 3, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 5, self.y + 3, 6, 1, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 10, self.y + 4, 2, 3, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 8, self.y + 7, 3, 1, 0x00FFFFFF)
+	emu.drawRectangle(self.x + 7, self.y + 8, 2, 2, 0x00FFFFFF)
+
+	emu.drawRectangle(self.x + 7, self.y + 11, 2, 2, 0x00FFFFFF)
+
+	if self.hover then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0x8F0FFF0F, 1)
+
+		drawStringShadow(self.x + self.w + 8, self.y + (self.h / 4), self.text, 0x00FFFFFF, 0xFFFFFFFF)
+	end
+
+	if self.open then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0xCFFFFFFF, 1)
+		emu.drawRectangle(self.x + 1, self.y + 1, self.w - 2, self.h - 2, 0x8F000000, 0)
+	end
+
+	if self.hover and self.clicked then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0x8FFFFFFF, 1)
+	end
+end
+
+function DrawGUICheckbox(self)
+	--Checkbox
+	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x8F000000, 1)
+	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x00FFFFFF, 0)
+
+	if self.open then
+		emu.drawLine(self.x + 12, self.y + 2, self.x + 2, self.y + 12, 0x00FFFFFF)
+		emu.drawLine(self.x + 13, self.y + 2, self.x + 2, self.y + 13, 0x00FFFFFF)
+		emu.drawLine(self.x + 13, self.y + 3, self.x + 3, self.y + 13, 0x00FFFFFF)
+
+
+		emu.drawLine(self.x + 3, self.y + 2, self.x + 13, self.y + 12, 0x00FFFFFF)
+		emu.drawLine(self.x + 2, self.y + 2, self.x + 13, self.y + 13, 0x00FFFFFF)
+		emu.drawLine(self.x + 2, self.y + 3, self.x + 12, self.y + 13, 0x00FFFFFF)
+	end
+
+	if self.hover then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0x8F0FFF0F, 1)
+	end
+
+	if self.hover and self.clicked then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0x8FFFFFFF, 1)
+	end
+
+	if self.text ~= nil then
+		drawStringShadow(self.x + self.w + 8, self.y + (self.h / 4), self.text, 0x00FFFFFF, 0xFFFFFFFF)
+	end
+end
+
+function HandleGUICheckbox(self)
+	local mouse = emu.getMouseState()
+	if mouse.x >= self.x and mouse.x < (self.x + self.w) and mouse.y >= self.y and mouse.y < (self.y + self.h) then
+		self.hover = true
+	else
+		self.hover = false
+	end
+
+	if self.hover and mouse.left then
+		if self.clicked == false then
+			if self.open then
+				self.open = false
+			else
+				self.open = true
+			end
+			self.clicked = true
+		end
+	end
+
+	if mouse.left == false then
+		self.clicked = false
+	end
+
+	if self.var_handle ~= nil then
+		self.var_handle(self)
+	end
+end
+
+function DrawGUIButton(self)
+	--Button
+	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x008F8F8F, 0)
+	emu.drawRectangle(self.x + 1, self.y + 1, self.w - 1, self.h - 1, 0x004F4F4F, 0)
+	emu.drawRectangle(self.x + 1, self.y + 1, self.w - 2, self.h - 2, 0x00CFCFCF, 1)
+
+	if self.hover then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0x8F0FFF0F, 1)
+	end
+
+	if self.clicked then
+		emu.drawRectangle(self.x, self.y, self.w, self.h, 0x004F4F4F, 0)
+		emu.drawRectangle(self.x + 1, self.y + 1, self.w - 1, self.h - 1, 0x008F8F8F, 0)
+		emu.drawRectangle(self.x + 1, self.y + 1, self.w - 2, self.h - 2, 0x005F5F5F, 1)
+	end
+
+	if self.text ~= nil then
+		drawStringShadow(self.x + self.w + 8, self.y + (self.h / 4), self.text, 0x00FFFFFF, 0xFFFFFFFF)
+	end
+end
+
+function HandleGUIButton(self)
+	local mouse = emu.getMouseState()
+	if mouse.x >= self.x and mouse.x < (self.x + self.w) and mouse.y >= self.y and mouse.y < (self.y + self.h) then
+		self.hover = true
+	else
+		self.hover = false
+	end
+
+	if self.hover and mouse.left then
+		if self.clicked == false then
+			if self.var_handle ~= nil then
+				self.var_handle(self)
+			end
+			self.clicked = true
+		end
+	end
+
+	if mouse.left == false then
+		self.clicked = false
+	end
+end
+
+function HandleGUIFlashButton(self)
+	config.remove_flash = self.open
+end
+
+function HandleGUIGyroMoveButton(self)
+	config.automove_gyro = self.open
+end
+
+function HandleGUIMainBar(self)
+	if gui_button_main.clicked then
+		gui_button_help.open = false
+	elseif gui_button_help.clicked then
+		gui_button_main.open = false
+	end
+end
+
+gui_button_main = {
+	x = 8,
+	y = 8,
+	w = 16,
+	h = 16,
+
+	hover = false,
+	clicked = false,
+	open = false,
+	
+	draw = DrawGUIMain,
+	handle = HandleGUICheckbox,
+	text = "Options",
+	var_handle = HandleGUIMainBar,
+}
+
+gui_button_help = {
+	x = 25,
+	y = 8,
+	w = 16,
+	h = 16,
+
+	hover = false,
+	clicked = false,
+	open = true,
+	
+	draw = DrawGUIHelp,
+	handle = HandleGUICheckbox,
+	text = "Help",
+	var_handle = HandleGUIMainBar,
+}
+
+gui_button_opt_flash = {
+	x = 8,
+	y = 32,
+	w = 16,
+	h = 16,
+
+	hover = false,
+	clicked = false,
+	open = config.remove_flash,
+	
+	draw = DrawGUICheckbox,
+	handle = HandleGUICheckbox,
+	text = "Hide R.O.B. Screen Flashing",
+	var_handle = HandleGUIFlashButton,
+}
+
+gui_button_opt_autogyro = {
+	x = 8,
+	y = 50,
+	w = 16,
+	h = 16,
+
+	hover = false,
+	clicked = false,
+	open = config.automove_gyro,
+	
+	draw = DrawGUICheckbox,
+	handle = HandleGUICheckbox,
+	text = "Automatically place fallen Gyros back",
+	var_handle = HandleGUIGyroMoveButton,
+}
+
+gui_button_startgyro = {
+	x = 8,
+	y = 78,
+	w = 16,
+	h = 16,
+
+	hover = false,
+	clicked = false,
+	
+	draw = DrawGUIButton,
+	handle = HandleGUIButton,
+	text = "Setup Robot Gyro / Gyromite",
+	var_handle = StartRobotGyro,
+}
+
+gui_button_startblock = {
+	x = 8,
+	y = 96,
+	w = 16,
+	h = 16,
+
+	hover = false,
+	clicked = false,
+	
+	draw = DrawGUIButton,
+	handle = HandleGUIButton,
+	text = "Setup Robot Block / Stack-Up",
+	var_handle = StartRobotBlock,
+}
+
+function DrawController(x, y)
+	--Main shape (x = 79, y = 79)
+	emu.drawRectangle(x+1, y+1, 52, 22, 0x00000000, 1)
+	emu.drawRectangle(x, y, 52, 22, 0x008F8F8F, 1)
+	emu.drawRectangle(x+1, y+1, 50, 20, 0x00CFCFCF, 1)
+	emu.drawRectangle(x+3, y+5, 46, 15, 0x002F2F2F, 1)
+	
+	--Middle part
+	emu.drawRectangle(x+18, y+5, 14, 2, 0x00AFAFAF, 1)
+	emu.drawRectangle(x+18, y+8, 14, 2, 0x00AFAFAF, 1)
+	emu.drawRectangle(x+18, y+12, 14, 4, 0x00CFCFCF, 1)
+	emu.drawRectangle(x+18, y+18, 14, 2, 0x00AFAFAF, 1)
+
+	emu.drawRectangle(x+19, y+13, 5, 2, 0x001F1F1F, 1)	--Select
+	emu.drawRectangle(x+26, y+13, 5, 2, 0x001F1F1F, 1)	--Start
+
+	emu.drawRectangle(x+34, y+11, 6, 6, 0x00CFCFCF, 1)
+	emu.drawRectangle(x+36, y+12, 2, 4, 0x00CF0000, 1)	--B
+	emu.drawRectangle(x+35, y+13, 4, 2, 0x00CF0000, 1)
+	emu.drawRectangle(x+41, y+11, 6, 6, 0x00CFCFCF, 1)
+	emu.drawRectangle(x+43, y+12, 2, 4, 0x00CF0000, 1)	--A
+	emu.drawRectangle(x+42, y+13, 4, 2, 0x00CF0000, 1)
+
+	emu.drawRectangle(x+5, y+11, 10, 4, 0x00CFCFCF, 1)
+	emu.drawRectangle(x+8, y+8, 4, 10, 0x00CFCFCF, 1)
+	emu.drawRectangle(x+6, y+12, 8, 2, 0x001F1F1F, 1)	--D-Pad
+	emu.drawRectangle(x+9, y+9, 2, 8, 0x001F1F1F, 1)
+end
+
+function DrawGUI()
+	gui_button_main.draw(gui_button_main)
+	if gui_button_main.open then
+		emu.drawRectangle(5, 27, 224, 90, 0x00000000, 0)
+		emu.drawRectangle(4, 26, 224, 90, 0x2F0F6F8F, 1)
+		emu.drawRectangle(4, 26, 224, 90, 0x00FFFFFF, 0)
+
+		gui_button_opt_flash.draw(gui_button_opt_flash)
+		gui_button_opt_autogyro.draw(gui_button_opt_autogyro)
+		emu.drawRectangle(9, 73, 216, 1, 0x00000000, 0)
+		emu.drawRectangle(8, 72, 216, 1, 0x00FFFFFF, 0)
+		gui_button_startgyro.draw(gui_button_startgyro)
+		gui_button_startblock.draw(gui_button_startblock)
+	end
+	gui_button_help.draw(gui_button_help)
+	if gui_button_help.open then
+		emu.drawRectangle(5, 27, 246, 176, 0x00000000, 0)
+		emu.drawRectangle(4, 26, 246, 176, 0x2F8F6F0F, 1)
+		emu.drawRectangle(4, 26, 246, 176, 0x00FFFFFF, 0)
+		drawStringShadow(8, 30, "General Information:\nYou can grab and hold R.O.B. accessories with\nthe mouse cursor and the left button.", 0x00FFFFFF)
+		emu.drawRectangle(9, 62, 237, 1, 0x00000000, 0)
+		emu.drawRectangle(8, 61, 237, 1, 0x00FFFFFF, 0)
+
+		--Help
+		if config.mode == "gyro" then
+			local game_mode = emu.read(0x5B, emu.memType.nesInternalRam, 0)
+			drawStringShadow(8, 68, "Robot Gyro / Gyromite Instructions:", 0x00FFFFFF, 0xFFFFFFFF)
+
+			if game_mode == 0 then
+				drawStringShadow(8, 80, "Test Mode:\nThis sends a signal so you can focus\nR.O.B.'s eyes to the T.V. screen.", 0x00FFFFFF, 0xFFFFFFFF)
+			elseif game_mode == 1 then
+				drawStringShadow(8, 80, "Direct Mode:\nDirectly send commands to R.O.B. for testing.\nA good way to get familiar with the controls.", 0x00FFFFFF, 0xFFFFFFFF)
+			elseif game_mode == 2 or game_mode == 3 then
+				drawStringShadow(8, 80, "Game A Mode:\nControl Professor Hector and defuse all the\nbombs while avoiding Smicks. Use R.O.B. and\nthe gyros to move gates up and down.\nYou can use turnips with the A or B button\nto keep Smicks busy and pass through them.", 0x00FFFFFF, 0xFFFFFFFF)
+			else
+				drawStringShadow(8, 80, "Game B Mode:\nProfessor Hector is walking in his sleep.\nUse R.O.B. and the gyros to move gates\nup and down and let him walk safely to the end.", 0x00FFFFFF, 0xFFFFFFFF)
+			end
+
+			local rob_controls_x = 88
+			local rob_controls_y = 155
+			drawStringShadow(8, rob_controls_y-13, "R.O.B. Controls:", 0x00FFFFFF, 0xFFFFFFFF)
+			--NES controller
+			DrawController(rob_controls_x, rob_controls_y)
+
+			drawStringShadow(rob_controls_x-71, rob_controls_y+8, "Move Arms", 0x00FFFFFF, 0xFFFFFFFF)
+			emu.drawLine(rob_controls_x+5, rob_controls_y+12, rob_controls_x-19, rob_controls_y+12, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+5, rob_controls_y+13, rob_controls_x-18, rob_controls_y+13, 0x00000000)
+
+			if game_mode == 0 or game_mode == 1 then
+				drawStringShadow(rob_controls_x-40, rob_controls_y+26, "Exit", 0x00FFFFFF, 0xFFFFFFFF)
+			else
+				drawStringShadow(rob_controls_x-48, rob_controls_y+26, "Pause", 0x00FFFFFF, 0xFFFFFFFF)
+			end
+			emu.drawLine(rob_controls_x+20, rob_controls_y+14, rob_controls_x+4, rob_controls_y+30, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+3, rob_controls_y+30, rob_controls_x-19, rob_controls_y+30, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+20, rob_controls_y+15, rob_controls_x+4, rob_controls_y+31, 0x00000000)
+			emu.drawLine(rob_controls_x+3, rob_controls_y+31, rob_controls_x-18, rob_controls_y+31, 0x00000000)
+
+			if game_mode == 2 or game_mode == 3 then
+				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "R.O.B. Mode (Game A)\n(When Paused) Exit", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
+			elseif game_mode == 4 then
+				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "(When Paused) Exit", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
+			end
+
+			drawStringShadow(rob_controls_x+76, rob_controls_y-4, "(B) Close Arms", 0x00FFFFFF, 0xFFFFFFFF)
+			emu.drawLine(rob_controls_x+37, rob_controls_y+13, rob_controls_x+51, rob_controls_y-1, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+51, rob_controls_y-1, rob_controls_x+71, rob_controls_y-1, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+38, rob_controls_y+13, rob_controls_x+51, rob_controls_y+0, 0x00000000)
+			emu.drawLine(rob_controls_x+52, rob_controls_y+0, rob_controls_x+72, rob_controls_y+0, 0x00000000)
+
+			drawStringShadow(rob_controls_x+76, rob_controls_y+10, "(A) Open Arms", 0x00FFFFFF, 0xFFFFFFFF)
+			emu.drawLine(rob_controls_x+44, rob_controls_y+13, rob_controls_x+71, rob_controls_y+13, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+45, rob_controls_y+14, rob_controls_x+72, rob_controls_y+14, 0x00000000)
+		elseif config.mode == "block" then
+			local game_mode = emu.read(0x38, emu.memType.nesInternalRam, 0)
+			drawStringShadow(8, 68, "Robot Block / Stack-Up Instructions:", 0x00FFFFFF, 0xFFFFFFFF)
+
+			if game_mode == 0 then
+				drawStringShadow(8, 80, "Test Mode:\nThis sends a signal so you can focus\nR.O.B.'s eyes to the T.V. screen.", 0x00FFFFFF, 0xFFFFFFFF)
+			elseif game_mode == 1 then
+				drawStringShadow(8, 80, "Direct Mode:\nDirectly send commands to R.O.B. and move\nthe colored blocks from a starting configuration\nto another with as few commands as possible.", 0x00FFFFFF, 0xFFFFFFFF)
+			elseif game_mode == 2 then
+				drawStringShadow(8, 80, "Memory Mode:\nSet up a list of commands for R.O.B.\nto memorize and move the colored blocks from a\nstarting configuration to another with as\nfew commands as possible.", 0x00FFFFFF, 0xFFFFFFFF)
+			elseif game_mode == 3 then
+				drawStringShadow(8, 80, "Bingo (1P) Mode:\nPress down a complete row or column of keys to\nsend a command to R.O.B. and move blocks from\na starting configuration to another with as\nfew commands as possible. Enemies will get in your\nway and may also send commands to R.O.B. too!", 0x00FFFFFF, 0xFFFFFFFF)
+			elseif game_mode == 4 then
+				drawStringShadow(8, 80, "Bingo (2P) Mode:\nPress down a complete row or column of keys to\nsend a command to R.O.B. and move blocks from\nthe stack and compete to put the most blocks\nin their designated trays!", 0x00FFFFFF, 0xFFFFFFFF)
+			end
+
+			local rob_controls_x = 52
+			local rob_controls_y = 155
+			drawStringShadow(8, rob_controls_y-13, "Controls:", 0x00FFFFFF, 0xFFFFFFFF)
+			--NES controller
+			DrawController(rob_controls_x, rob_controls_y)
+
+			drawStringShadow(rob_controls_x-44, rob_controls_y+8, "Move", 0x00FFFFFF, 0xFFFFFFFF)
+			emu.drawLine(rob_controls_x+5, rob_controls_y+12, rob_controls_x-19, rob_controls_y+12, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+5, rob_controls_y+13, rob_controls_x-18, rob_controls_y+13, 0x00000000)
+
+			drawStringShadow(rob_controls_x-40, rob_controls_y+26, "Exit", 0x00FFFFFF, 0xFFFFFFFF)
+			emu.drawLine(rob_controls_x+20, rob_controls_y+14, rob_controls_x+4, rob_controls_y+30, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+3, rob_controls_y+30, rob_controls_x-19, rob_controls_y+30, 0x00FFFFFF)
+			emu.drawLine(rob_controls_x+20, rob_controls_y+15, rob_controls_x+4, rob_controls_y+31, 0x00000000)
+			emu.drawLine(rob_controls_x+3, rob_controls_y+31, rob_controls_x-18, rob_controls_y+31, 0x00000000)
+
+			if game_mode == 1 then
+				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "Go To Next Phase", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
+			elseif game_mode == 2 then
+				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "Confirm / Go To Next Phase", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
+			
+				drawStringShadow(rob_controls_x+76, rob_controls_y-4, "(B) Select Command Left", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+37, rob_controls_y+13, rob_controls_x+51, rob_controls_y-1, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+51, rob_controls_y-1, rob_controls_x+71, rob_controls_y-1, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+38, rob_controls_y+13, rob_controls_x+51, rob_controls_y+0, 0x00000000)
+				emu.drawLine(rob_controls_x+52, rob_controls_y+0, rob_controls_x+72, rob_controls_y+0, 0x00000000)
+
+				drawStringShadow(rob_controls_x+76, rob_controls_y+10, "(A) Select Command Right", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+44, rob_controls_y+13, rob_controls_x+71, rob_controls_y+13, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+14, rob_controls_x+72, rob_controls_y+14, 0x00000000)
+			elseif game_mode == 3 or game_mode == 4 then
+				drawStringShadow(rob_controls_x+54, rob_controls_y+26, "(When Paused)\nGo To Next Phase", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+14, rob_controls_x+45, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+30, rob_controls_x+49, rob_controls_y+30, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+29, rob_controls_y+15, rob_controls_x+45, rob_controls_y+31, 0x00000000)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+31, rob_controls_x+50, rob_controls_y+31, 0x00000000)
+			
+				drawStringShadow(rob_controls_x+76, rob_controls_y-4, "(B) Pause", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+37, rob_controls_y+13, rob_controls_x+51, rob_controls_y-1, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+51, rob_controls_y-1, rob_controls_x+71, rob_controls_y-1, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+38, rob_controls_y+13, rob_controls_x+51, rob_controls_y+0, 0x00000000)
+				emu.drawLine(rob_controls_x+52, rob_controls_y+0, rob_controls_x+72, rob_controls_y+0, 0x00000000)
+
+				drawStringShadow(rob_controls_x+76, rob_controls_y+10, "(A) Pause", 0x00FFFFFF, 0xFFFFFFFF)
+				emu.drawLine(rob_controls_x+44, rob_controls_y+13, rob_controls_x+71, rob_controls_y+13, 0x00FFFFFF)
+				emu.drawLine(rob_controls_x+45, rob_controls_y+14, rob_controls_x+72, rob_controls_y+14, 0x00000000)
+			end
+		end
+	end
+end
+
+function HandleGUI()
+	gui_button_main.handle(gui_button_main)
+	if gui_button_main.open then
+		gui_button_opt_flash.handle(gui_button_opt_flash)
+		gui_button_opt_autogyro.handle(gui_button_opt_autogyro)
+		gui_button_startgyro.handle(gui_button_startgyro)
+		gui_button_startblock.handle(gui_button_startblock)
+	end
+	gui_button_help.handle(gui_button_help)
+end
+
 startROB()
-StartRobotGyro()
---StartRobotBlock()

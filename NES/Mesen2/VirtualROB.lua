@@ -17,11 +17,11 @@ rob = {
 	y = 0,
 	xnext = 2,
 	ynext = 2,
-	x_speed = 0.2,
-	y_speed = 0.2,
+	x_speed = 0.01,
+	y_speed = 0.01,
 
 	arms = 2,
-	arms_speed = 0.2,
+	arms_speed = 0.015,
 	arms_max = 2
 }
 
@@ -44,7 +44,7 @@ config = {
 	mode = nil,
 
 	--amount of frames for a gyro to spin
-	spin_max = 60*10,
+	spin_max = 60*60*4,	--around 4 minutes
 
 	--remove rob communication flash (anti-epilepsy)
 	remove_flash = true,

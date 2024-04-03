@@ -510,12 +510,13 @@ function inputPoll()
 end
 
 function startROB()
-	detectGame()
 	emu.addEventCallback(updateROB, emu.eventType.endFrame)
 	emu.addEventCallback(inputPoll, emu.eventType.inputPolled)
 
 	--Display a startup message
 	emu.displayMessage("Script", "Virtual ROB loaded.")
+
+	detectGame()
 end
 
 --Gyromite specific
@@ -876,7 +877,7 @@ gui_button_help = {
 
 	hover = false,
 	clicked = false,
-	open = true,
+	open = false,
 	
 	draw = DrawGUIHelp,
 	handle = HandleGUICheckbox,

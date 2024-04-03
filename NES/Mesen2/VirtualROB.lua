@@ -687,7 +687,7 @@ function StartRobotBlock()
 end
 
 --GUI
-function DrawGUIMain(self)
+function DrawGUIOptionsIcon(self)
 	--Options Icon
 	emu.drawRectangle(self.x, self.y, self.w, self.h, 0xCFFFFFFF, 1)
 	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x00FFFFFF, 0)
@@ -719,7 +719,7 @@ function DrawGUIMain(self)
 	end
 end
 
-function DrawGUIHelp(self)
+function DrawGUIHelpIcon(self)
 	--Help Icon
 	emu.drawRectangle(self.x, self.y, self.w, self.h, 0xCFFFFFFF, 1)
 	emu.drawRectangle(self.x, self.y, self.w, self.h, 0x00FFFFFF, 0)
@@ -800,8 +800,8 @@ function HandleGUICheckbox(self)
 		self.clicked = false
 	end
 
-	if self.var_handle ~= nil then
-		self.var_handle(self)
+	if self.func ~= nil then
+		self.func(self)
 	end
 end
 
@@ -836,8 +836,8 @@ function HandleGUIButton(self)
 
 	if self.hover and mouse.left then
 		if self.clicked == false then
-			if self.var_handle ~= nil then
-				self.var_handle(self)
+			if self.func ~= nil then
+				self.func(self)
 			end
 			self.clicked = true
 		end
@@ -848,15 +848,15 @@ function HandleGUIButton(self)
 	end
 end
 
-function HandleGUIFlashButton(self)
+function FuncGUIFlashButton(self)
 	config.remove_flash = self.open
 end
 
-function HandleGUIGyroMoveButton(self)
+function FuncGUIGyroMoveButton(self)
 	config.automove_gyro = self.open
 end
 
-function HandleGUIMainBar(self)
+function FuncGUIMainBar(self)
 	if gui_button_main.clicked then
 		gui_button_help.open = false
 	elseif gui_button_help.clicked then
@@ -874,10 +874,10 @@ gui_button_main = {
 	clicked = false,
 	open = false,
 	
-	draw = DrawGUIMain,
+	draw = DrawGUIOptionsIcon,
 	handle = HandleGUICheckbox,
 	text = "Options",
-	var_handle = HandleGUIMainBar,
+	func = FuncGUIMainBar,
 }
 
 gui_button_help = {
@@ -890,10 +890,10 @@ gui_button_help = {
 	clicked = false,
 	open = false,
 	
-	draw = DrawGUIHelp,
+	draw = DrawGUIHelpIcon,
 	handle = HandleGUICheckbox,
 	text = "Help",
-	var_handle = HandleGUIMainBar,
+	func = FuncGUIMainBar,
 }
 
 gui_button_opt_flash = {
@@ -909,7 +909,7 @@ gui_button_opt_flash = {
 	draw = DrawGUICheckbox,
 	handle = HandleGUICheckbox,
 	text = "Hide R.O.B. Screen Flashing",
-	var_handle = HandleGUIFlashButton,
+	func = FuncGUIFlashButton,
 }
 
 gui_button_opt_autogyro = {
@@ -925,7 +925,7 @@ gui_button_opt_autogyro = {
 	draw = DrawGUICheckbox,
 	handle = HandleGUICheckbox,
 	text = "Automatically place fallen Gyros back",
-	var_handle = HandleGUIGyroMoveButton,
+	func = FuncGUIGyroMoveButton,
 }
 
 gui_button_startgyro = {
@@ -939,8 +939,8 @@ gui_button_startgyro = {
 	
 	draw = DrawGUIButton,
 	handle = HandleGUIButton,
-	text = "Setup Robot Gyro / Gyromite",
-	var_handle = StartRobotGyro,
+	text = "Force Setup Robot Gyro / Gyromite",
+	func = StartRobotGyro,
 }
 
 gui_button_startblock = {
@@ -954,8 +954,8 @@ gui_button_startblock = {
 	
 	draw = DrawGUIButton,
 	handle = HandleGUIButton,
-	text = "Setup Robot Block / Stack-Up",
-	var_handle = StartRobotBlock,
+	text = "Force Setup Robot Block / Stack-Up",
+	func = StartRobotBlock,
 }
 
 gui_text = {

@@ -1153,7 +1153,7 @@ function DrawGUI()
 		end
 
 		if gui_text[config.mode].text_controls[game_mode].a ~= nil then
-			drawStringShadow(rob_controls_x+76, rob_controls_y+10, "(A) Open Arms", 0x00FFFFFF, 0xFFFFFFFF)
+			drawStringShadow(rob_controls_x+76, rob_controls_y+10, gui_text[config.mode].text_controls[game_mode].a, 0x00FFFFFF, 0xFFFFFFFF)
 			emu.drawLine(rob_controls_x+44, rob_controls_y+13, rob_controls_x+71, rob_controls_y+13, 0x00FFFFFF)
 			emu.drawLine(rob_controls_x+45, rob_controls_y+14, rob_controls_x+72, rob_controls_y+14, 0x00000000)
 		end

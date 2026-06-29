@@ -20,6 +20,9 @@ preMouseState = emu.getMouseState()
 curMouseState = emu.getMouseState()
 values = {0, 0, 0, 0}
 flagSaveNextNote = false
+flagSaveTimerStart = false
+timerStart = false
+timer = 0
 
 --Util
 function checkMouseBox(x, y, w, h)
@@ -139,14 +142,15 @@ end
 --SPC Test
 function makeSPC()
 	--check if file exists
-	local number = 1
-	local path = emu.getScriptDataFolder() .. "/" .. emu.getRomInfo()["name"] .. "_" .. number .. ".spc"
-	while (not fileExists(path)) do
-		number = number + 1
-		path = emu.getScriptDataFolder() .. "/" .. emu.getRomInfo()["name"] .. "_" .. number .. ".spc"
+	SPCnumber = 1
+	SPCpath = emu.getScriptDataFolder() .. "/" .. emu.getRomInfo()["name"] .. "_" .. SPCnumber .. ".spc"
+	while (not fileExists(SPCpath)) do
+		SPCnumber = SPCnumber + 1
+		SPCpath = emu.getScriptDataFolder() .. "/" .. emu.getRomInfo()["name"] .. "_" .. SPCnumber .. ".spc"
 	end
 	state = emu.getState()
-	local outSpc = io.open(path, "wb")
+	local outSpc = io.open(SPCpath, "wb")
+	
 	outSpc:write("SNES-SPC700 Sound File Data v0.30")
 	outSpc:write(string.pack("BBBB", 0x1A, 0x1A, 0x1B, 30))
 	outSpc:write(string.pack("HBBBBB", state["spc.pc"], state["spc.a"], state["spc.x"], state["spc.y"], state["spc.ps"], state["spc.sp"]))	--APU State
@@ -166,17 +170,28 @@ function makeSPC()
 	for i = 0x10000-64, emu.getMemorySize(emu.memType.spcRam)-1 do
 		outSpc:write(string.pack("B", emu.read(i, emu.memType.spcRam, false)))
 	end
-	--outSpc:seek("set", 0x23); outSpc:write("\x1A")
+	--outSpc:seek("set", 0x23); outSpc:write("\x1A") --Required for Timing
 	--outSpc:seek("set", 0x2E); outSpc:write("Title")
 	--outSpc:seek("set", 0x4E); outSpc:write("Game")
 	--outSpc:seek("set", 0x6E); outSpc:write("LuigiBlood")
 	--outSpc:seek("set", 0x7E); outSpc:write(1)
-	--outSpc:seek("set", 0xA9); outSpc:write(40)
-	--outSpc:seek("set", 0xAC); outSpc:write(5000)
+	--outSpc:seek("set", 0xA9); outSpc:write(40) --Required for Timing
+	--outSpc:seek("set", 0xAC); outSpc:write(5000) --Required for Timing
 	--outSpc:seek("set", 0xB1); outSpc:write("Artist")
-	--outSpc:seek("set", 0xD2); outSpc:write(0)
+	--outSpc:seek("set", 0xD2); outSpc:write(0) --Required for Timing
 	outSpc:close()
-	emu.displayMessage("SPC", path)
+	emu.displayMessage("SPC", SPCpath)
+end
+
+function setTimeSPC(fade)
+	local outSpc = io.open(SPCpath, "r+b")
+	outSpc:seek("set", 0x23); outSpc:write("\x1A")
+	outSpc:seek("set", 0xA9); outSpc:write(math.floor(timer / 60))
+	outSpc:seek("set", 0xAC); outSpc:write(fade)
+	outSpc:seek("set", 0xD2); outSpc:write(0)
+	outSpc:close()
+	emu.displayMessage("SPC", string.format("(Set Time: %d:%02d)", math.floor(timer / 60 / 60), math.floor(timer / 60 % 60)) .. SPCpath)
+	timerStart = false
 end
 
 function firstNoteCheck(address, value)
@@ -187,12 +202,21 @@ function firstNoteCheck(address, value)
 	if (dspreg == 0x4C) and (value ~= 0) and ((value ^ dspdata) ~= 0) and flagSaveNextNote then
 		makeSPC()
 		flagSaveNextNote = false
+		if flagSaveTimerStart then
+			flagSaveTimerStart = false
+			timerStart = true
+			timer = 0
+		end
 	end
 end
 
 emu.addMemoryCallback(firstNoteCheck, emu.callbackType.write, 0xF3, 0xF3, emu.cpuType.spc, emu.memType.spcMemory)
 
 function manageScreen()
+	if timerStart then
+		timer = timer + 1
+	end
+
 	state = emu.getState()
 	preMouseState = curMouseState
 	curMouseState = emu.getMouseState()
@@ -223,13 +247,25 @@ function manageScreen()
     	emu.write(0x2143, values[4], emu.memType.snesMemory)
     end
     
-    x = 8; y = 8
-    if buttonUI(x,y,"Create SPC") then
+    x = 8; y = 35
+    if buttonUI(x,y,"Save SPC") then
     	makeSPC()
     end
-    
-    if buttonUI(x,y+28,"Create SPC (Next Note)") then
+    if buttonUI(x,y+18,"Save SPC (Next Note)") then
     	flagSaveNextNote = true
+    end
+    if buttonUI(x,y+35,"Save SPC (Next Note)\n+ Start Timer") then
+    	flagSaveNextNote = true
+    	flagSaveTimerStart = true
+    end
+    if timerStart then
+    	textBoxUI(x, y+64,string.format("Time: %d:%02d", math.floor(timer / 60 / 60), math.floor(timer / 60 % 60)), 0x50A02020)
+    	if buttonUI(x,y+80,"Stop & Save Time to SPC (Fade)") then
+	    	setTimeSPC(5000)
+	    end
+	    if buttonUI(x,y+100,"Stop & Save Time to SPC (No Fade)") then
+	    	setTimeSPC(0)
+	    end
     end
     
     x = 90; y = 8

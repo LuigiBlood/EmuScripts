@@ -186,7 +186,7 @@ end
 function setTimeSPC(fade)
 	local outSpc = io.open(SPCpath, "r+b")
 	outSpc:seek("set", 0x23); outSpc:write("\x1A")
-	outSpc:seek("set", 0xA9); outSpc:write(math.floor(timer / 60))
+	outSpc:seek("set", 0xA9); outSpc:write(math.ceil(timer / 60))
 	outSpc:seek("set", 0xAC); outSpc:write(fade)
 	outSpc:seek("set", 0xD2); outSpc:write(0)
 	outSpc:close()
@@ -194,12 +194,12 @@ function setTimeSPC(fade)
 	timerStart = false
 end
 
-function firstNoteCheck(address, value)
+function nextNoteCheck(address, value)
 	--thanks Nova
 	local dspreg = emu.read(0xF2, emu.memType.spcMemory)
-	local dspdata = emu.read(0xF3, emu.memType.spcMemory)
+	local dspdata = emu.read(dspreg, emu.memType.spcDspRegisters)
 	
-	if (dspreg == 0x4C) and (value ~= 0) and ((value ^ dspdata) ~= 0) and flagSaveNextNote then
+	if (dspreg == 0x4C) and (value ~= 0) and ((value ~ dspdata) ~= 0) and flagSaveNextNote then
 		makeSPC()
 		flagSaveNextNote = false
 		if flagSaveTimerStart then
@@ -210,7 +210,7 @@ function firstNoteCheck(address, value)
 	end
 end
 
-emu.addMemoryCallback(firstNoteCheck, emu.callbackType.write, 0xF3, 0xF3, emu.cpuType.spc, emu.memType.spcMemory)
+emu.addMemoryCallback(nextNoteCheck, emu.callbackType.write, 0xF3, 0xF3, emu.cpuType.spc, emu.memType.spcMemory)
 
 function manageScreen()
 	if timerStart then

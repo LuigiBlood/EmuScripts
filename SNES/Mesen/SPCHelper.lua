@@ -200,6 +200,7 @@ function nextNoteCheck(address, value)
 	local dspdata = emu.read(dspreg, emu.memType.spcDspRegisters)
 	
 	if (dspreg == 0x4C) and (value ~= 0) and ((value ~ dspdata) ~= 0) and flagSaveNextNote then
+		emu.write(dspreg, value, emu.memType.spcDspRegisters)
 		makeSPC()
 		flagSaveNextNote = false
 		if flagSaveTimerStart then
